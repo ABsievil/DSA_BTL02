@@ -1,13 +1,33 @@
 MAXSIZE 5
-LAPSE abaaabbbDd
+LAPSE aabbcccdeefgSBYNShijjklmnopqqrsttBSGTDVStuvwxxyz
+HAND
 LAPSE iuasgfuigweibjaskdfbjksadf
 LAPSE iuiwehruihqwUIAGSIDiernbsandfb
 LAPSE uiewhqruihqiuwerhnbdasnbfnmasd
-HAND
 LAPSE ukkajhsdfjkasbndbmnFJKHJKsdbfsabdf
 LAPSE kjasdbfjksbDFFDFFfdjksabfdjkasdf
 LIMITLESS 2
 LAPSE skjafdbkjasfnmFFFFsaddnfdf
 KEITEIKEN 2
-KOKUSEN
 CLEAVE 1
+LAPSE xxxhtbbxyah
+LAPSE mhhhxoisjfiojHHHHkt
+LAPSE opmalskjopksj
+LAPSE thopHkhskjQQQhTT
+LAPSE fhsfldjasklkg
+LAPSE faslflasfkjkdlskfjaljfs
+LAPSE faslfksdjlajflaskdflskdjfl
+LAPSE aashajahsfhakshjfh
+LAPSE asfdlaskfaslfdjk
+LAPSE awoiejfncskm
+LAPSE hjhklasfdnasfsmh
+LAPSE fskakjfsdlaskf
+LAPSE laksjfka
+LAPSE ASLJlkjafldskj 
+LAPSE ASFDJLAJLKMnflaskdnNKLk
+LAPSE ALFSDKJlaksdjlskgj
+LAPSE iuasgfuigweibjaskdfbjksadf
+LAPSE uiewhqruihqiuwerhnbdasnbfnmasd
+HAND
+LIMITLESS 2
+KOKUSEN

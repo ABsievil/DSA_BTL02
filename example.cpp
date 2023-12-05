@@ -86,6 +86,58 @@ string encryptCaesar(string na){
     return out;
 }  
 
+//string encryptCaesar(string na){
+		// 	std::stack<char> S;
+		// 	map<char, int> newMap;
+		// 	int shift = 0;
+		// 	string out = "";
+		// 	for(char c: na){
+		// 		if(S.empty()) {
+		// 			S.push(c);
+		// 			shift++;
+		// 		}
+		// 		else if(S.top() == c) {
+		// 			S.push(c);
+		// 			shift++;
+		// 		}
+		// 		else {
+		// 			char tempCh = spEncypt(S.top(), shift);
+		// 			bool isAdded = false;
+		// 			for(auto& m : newMap){
+		// 				if(m.first == tempCh) {
+		// 					m.second += shift;
+		// 					isAdded = true;
+		// 					break;
+		// 				}
+		// 			}
+		// 			if(!isAdded) {
+		// 				out+= tempCh;
+		// 				newMap.insert({tempCh, shift});
+		// 			}
+		// 			while(!S.empty()) S.pop();
+		// 			S.push(c);
+		// 			shift = 1;
+		// 		}
+		// 	}
+		// 	if(!S.empty()) {	
+		// 		char tempCh = spEncypt(S.top(), shift);
+		// 		bool isAdded = false;
+		// 		for(auto& m : newMap){
+		// 			if(m.first == tempCh) {
+		// 				m.second += shift;
+		// 				isAdded = true;
+		// 				break;
+		// 			}
+		// 		}
+		// 		if(!isAdded) {
+		// 			out+= tempCh;
+		// 			newMap.insert({tempCh, shift});
+		// 		}
+		// 	}
+		// 	this->myMap = newMap;
+		// 	return out;
+		// }  
+
 // Heap class
 template <typename E, typename Comp> 
 class heap {
@@ -205,7 +257,7 @@ public:
 // Build a Huffman tree from a collection of frequencies
 template <typename E> 
 HuffTree<E>* buildHuff(HuffTree<E>** TreeArray, int count) {
-    heap<HuffTree<E>*,minTreeComp<E>>* forest = new heap<HuffTree<E>*, minTreeComp<E>>(TreeArray, count, count);
+    heap<HuffTree<E>*, minTreeComp<E>>* forest = new heap<HuffTree<E>*, minTreeComp<E>>(TreeArray, count, count);
     HuffTree<char> *temp1, *temp2, *temp3 = NULL;
 
     while (forest->size() > 1) {

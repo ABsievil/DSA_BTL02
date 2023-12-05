@@ -1,0 +1,96 @@
+template <typename E>
+int getHeight(HuffNode<E>* root) {
+    if (root == nullptr) {
+        return 0;
+    }
+    return max(getHeight(root->left), getHeight(root->right)) + 1;
+}
+
+template <typename E>
+int getBalanceFactor(HuffNode<E>* root) {
+    if (root == nullptr) {
+        return 0;
+    }
+    return getHeight(root->left) - getHeight(root->right);
+}
+
+template <typename E>
+HuffNode<E>* rotateRight(HuffNode<E>* y) {
+    HuffNode<E>* x = y->left;
+    HuffNode<E>* T2 = x->right;
+
+    x->right = y;
+    y->left = T2;
+
+    return x;
+}
+
+template <typename E>
+HuffNode<E>* rotateLeft(HuffNode<E>* x) {
+    HuffNode<E>* y = x->right;
+    HuffNode<E>* T2 = y->left;
+
+    y->left = x;
+    x->right = T2;
+
+    return y;
+}
+
+template <typename E>
+HuffNode<E>* balanceTree(HuffNode<E>* root) {
+    int balance = getBalanceFactor(root);
+
+    // Trường hợp Left-Left
+    if (balance > 1 && getBalanceFactor(root->left) >= 0) {
+        return rotateRight(root);
+    }
+
+    // Trường hợp Right-Right
+    if (balance < -1 && getBalanceFactor(root->right) <= 0) {
+        return rotateLeft(root);
+    }
+
+    // Trường hợp Left-Right
+    if (balance > 1 && getBalanceFactor(root->left) < 0) {
+        root->left = rotateLeft(root->left);
+        return rotateRight(root);
+    }
+
+    // Trường hợp Right-Left
+    if (balance < -1 && getBalanceFactor(root->right) > 0) {
+        root->right = rotateRight(root->right);
+        return rotateLeft(root);
+    }
+
+    return root;
+}
+
+template <typename E>
+HuffTree<E>* buildHuff(const string& na, const map<char, int>& freq) {
+    priority_queue<HuffTree<E>*, vector<HuffTree<E>*>, minTreeComp<E>> forest;
+
+    for (char ch : na) {
+        LeafNode<E>* leafNode = new LeafNode<E>(ch, freq.at(ch));
+        HuffTree<E>* tree = new HuffTree<E>(leafNode);
+        forest.push(tree);
+    }
+
+    while (forest.size() > 1) {
+        HuffTree<E>* temp1 = forest.top();
+        forest.pop();
+
+        HuffTree<E>* temp2 = forest.top();
+        forest.pop();
+
+        IntlNode<E>* internalNode = new IntlNode<E>(temp1->getRoot(), temp2->getRoot());
+
+        // Thêm cân bằng cây Huffman
+        internalNode = balanceTree(internalNode);
+
+        HuffTree<E>* newTree = new HuffTree<E>(internalNode);
+        forest.push(newTree);
+    }
+
+    HuffTree<E>* huffmanTree = forest.top();
+    return huffmanTree;
+}
