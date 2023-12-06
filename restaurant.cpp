@@ -47,6 +47,8 @@ class LeafNode: public HuffNode<E>{
         int wgt;
     public:
        LeafNode(const E& val, int freq): it(val), wgt(freq){}
+	   ~LeafNode(){}
+
        int weight() { return wgt;}
        E val() {return it;}
        bool isLeaf() { return true; } 
@@ -66,6 +68,8 @@ class IntlNode: public HuffNode<E>{
             lc = l;
             rc = r;
         }
+		~IntlNode(){}
+
         int weight(){ return wgt;}
         bool isLeaf(){ return false; }
 
@@ -88,14 +92,29 @@ template<typename E>
 class HuffTree {
     private:
         HuffNode<E>* root;
+		HuffTree<E>* leftChild;
+		HuffTree<E>* rightChild;
     public:
         int time;
         class Node;
         // Constructor 
-        HuffTree(): root(nullptr){}
-        HuffTree(const E& val, int freq, int ti) { root = new LeafNode<E>(val, freq); time = ti; }
-        HuffTree(HuffTree<E>* l, HuffTree<E>* r, int ti) { root = new IntlNode<E>(l->Root(), r->Root()); time = ti; }
-        ~HuffTree(){}
+        HuffTree(): root(nullptr), leftChild(nullptr), rightChild(nullptr){}
+        HuffTree(const E& val, int freq, int ti) {  //using for LeafNode
+			root = new LeafNode<E>(val, freq); 
+			time = ti; 
+			leftChild = rightChild = nullptr;
+		}
+        HuffTree(HuffTree<E>*& l, HuffTree<E>*& r, int ti) { //using for IntlNode
+			root = new IntlNode<E>(l->Root(), r->Root()); 
+			time = ti; 
+			this->leftChild = l;
+			this->rightChild = r;
+		}
+		~HuffTree(){
+			if(leftChild) delete leftChild; leftChild = nullptr;
+			if(rightChild) delete rightChild; rightChild = nullptr;
+			if(root) delete root; root = nullptr;
+		}
 
         HuffNode<E> *Root(){ return root; }
         int weight(){ return root->weight(); }
@@ -125,7 +144,7 @@ class HuffTree {
 
             return ""; // Nếu không tìm thấy ở cả hai phía, trả về chuỗi rỗng
         }
-		string binEncypt(string str) {
+		string binEncypt(const string& str) {
 			string out = "";
 			for(char c: str){
 				string leftPath = getHuffmanCode(root->left(), c, "0");
@@ -143,7 +162,7 @@ class HuffTree {
 			string result(out, 0 , 10);
             return result;
 		}
-		int binaryToDecimal(string binaryString) {
+		int binaryToDecimal(const string& binaryString) {
 			int decimalValue = 0;
 			int base = 1; // Hệ số cơ số
 
@@ -310,7 +329,7 @@ class HuffTree {
 template <typename E>
 class minTreeComp {
 public:
-    bool operator()(HuffTree<E>* tree1, HuffTree<E>* tree2) {
+    bool operator()(HuffTree<E>*& tree1, HuffTree<E>*& tree2) {  // func return true ->swap, return false ->nothing
         if(tree1->weight() == tree2->weight()){
             return tree1->time > tree2->time;
         }
@@ -318,7 +337,7 @@ public:
     }
 };
 template <typename E>
-HuffTree<E>* buildHuff( string na, map<char, int>& freq) {
+HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
     priority_queue<HuffTree<E>*, vector<HuffTree<E>*>, minTreeComp<E>> forest;
 
     // Bước 1: Tạo một cây cho mỗi ký tự trong chuỗi 'na'
@@ -335,7 +354,6 @@ HuffTree<E>* buildHuff( string na, map<char, int>& freq) {
         forest.pop();
         HuffTree<E>* temp2 = forest.top();
         forest.pop();
-
         // Thêm cân bằng cây Huffman dùng recursion
         //internalNode = balanceTree(internalNode);
 
@@ -359,27 +377,36 @@ private:
     Node* root;
 public:
     BST() : root(nullptr){}
-    ~BST() {}
-    void insert(T value){
+    ~BST() {
+		clear(root);
+	}
+	void clear(Node*& r){
+		if(!r) return ;
+		if(r->pLeft) clear(r->pLeft);
+		if(r->pRight) clear(r->pRight);
+		delete r;
+		r = nullptr;
+	}
+    void insert(T& value){
         root = addRec(root, value);
     }
-    Node* addRec(Node* root, T value) {
+    Node* addRec(Node*& root, T& value) {
         if (root == nullptr) return new Node(value);
         if (value < root->value) root->pLeft = addRec(root->pLeft, value);
         else root->pRight = addRec(root->pRight, value);
         return root;
     }
 
-    void deleteKey(T value) {
+    void deleteKey(T& value) {
         root = deleteNodeRec (root, value); 
     }
-    Node* minValueNode(Node* root) {   //sp to deleteNodeRec func
+    Node* minValueNode(Node*& root) {   //sp to deleteNodeRec func
         Node* current = root;
         while (current && current->pLeft != nullptr)
             current = current->pLeft;
         return current;
     }
-    Node* deleteNodeRec(Node* root, T value) {
+    Node* deleteNodeRec(Node*& root, T& value) {
         if (root == nullptr) return root;
         if (value < root->value) root->pLeft = deleteNodeRec(root->pLeft, value);
         else if (value > root->value) root->pRight = deleteNodeRec(root->pRight, value);
@@ -434,7 +461,9 @@ public:
         friend class BST<T>;
     public:
         Node(T value) : value(value), pLeft(NULL), pRight(NULL) {}
-        ~Node() {}
+        ~Node() {
+			delete value;
+		}
     };
 };
 
@@ -448,8 +477,14 @@ private:
 	int timeUseRegion = 0;
 public:
 	HashTable(){}
-	~HashTable(){}
-	void insertToRegion(int region, T value) {
+	~HashTable(){
+		for(auto& x : regionManage){
+			delete x;
+		}
+		regionManage.clear();
+		// auto call Destructor of BST
+	}
+	void insertToRegion(int region, T& value) {
 		hashedBSTs[region].insert(value);
 		bool isAppeared = false;
 		for(auto reg : regionManage){
@@ -465,11 +500,11 @@ public:
 			regionManage.push_back(reg);
 		}
 	}
-	void deleteFromRegion(int region, T value) { 
+	void deleteFromRegion(int region, T& value) { 
 		hashedBSTs[region].deleteKey(value);
 	}
 
-	bool compareCustomers(Customer* a, Customer* b) {
+	bool compareCustomers(Customer*& a, Customer*& b) {
 		return a->getTimeIn() < b->getTimeIn();
 	}
 	vector<T> listCusAtRegion(int region){  // traverse = post-order and arrange timeIn
@@ -488,10 +523,10 @@ public:
 		//B1: convert BST tree -> array in order post-order
 		for(auto reg : regionManage){
 			vector<T> listCus = listCusAtRegion(reg->region);
-			cout<<"list Cus in BST and arranged timeIn at Region: "<<reg->region<<endl;
-			for(T x : listCus) {
-				cout<<"result: "<<x->getResult()<<" timeIn: "<<x->getTimeIn()<<endl;
-			} 
+			// cout<<"list Cus in BST and arranged timeIn at Region: "<<reg->region<<endl;
+			// for(T x : listCus) {
+			// 	cout<<"result: "<<x->getResult()<<" timeIn: "<<x->getTimeIn()<<endl;
+			// } 
 
 		//B2: calculate num of permutation(hoán vị) of array 
 			vector<int> arr;   // save result of listCus in BST in order time ascending
@@ -503,7 +538,7 @@ public:
 			calculateFact(fact, N);
 			int Y = countWays(arr, fact);
 			Y %= MAXSIZE;
-			cout<<"Y :"<<Y<<endl;
+			//cout<<"Y :"<<Y<<endl;
 
 		//B3: delete Y cus in order FIFO
 			for(int i =0; i< Y && i <N; i++){
@@ -659,7 +694,12 @@ class Heap{
 		vector<Region<T>*> regionManage; // num Region is created
 	public:
 		Heap(): timeUseRegion(0){}
-		~Heap(){}
+		~Heap(){
+			for(auto& x: regionManage){
+				delete x;
+			}
+			regionManage.clear();
+		}
 		void insertToRegion(int region, T val){
 			// Step 1: if region uncreated, then create region
 			bool isCreated = false;
@@ -689,7 +729,9 @@ class GRes{
 			timeInRes = 0;
 			hash = new HashTable<Customer* >();
 		};
-		~GRes(){};
+		~GRes(){
+			delete hash;
+		};
 		void G_KOKUSEN(){ //delete Y cus in each of area
 			hash->deleteAllRegion();
 		}
@@ -716,7 +758,9 @@ class SRes{
 			timeInRes = 0;
 			heap = new Heap<Customer* >();
 		};
-		~SRes(){};
+		~SRes(){
+			delete heap;
+		};
 		void S_KEITEIKEN(int num){
 			// delete num cus, num = (1, MAXSIZE) in order FIFO
 			//B1: choose area has not been used the longest and has the fewest visitors
@@ -737,7 +781,7 @@ class Caesar{
 	private:
 		map<char, int> myMap;
 	public:
-		string rearrangeName(string na, bool& isGreaterThan3ch){
+		string rearrangeName(const string& na, bool& isGreaterThan3ch){
 			std::stack<char> S;
 			std::queue<char> tempQ;
 			string name = na;
@@ -770,9 +814,8 @@ class Caesar{
 			return out;
 		}
 		
-		string encryptCaesar(string na){ //function: encypt string and Incremental string
+		void encryptCaesar(const string& na){ //function: encypt string and Incremental string
 			map<char, int> newMap;
-			string out = "";
 			for(char c: na){
 				char tempCh = spEncypt(c, this->myMap[c]);
 				bool isAdded = false;
@@ -784,12 +827,10 @@ class Caesar{
 					}
 				}
 				if(!isAdded) {
-					out+= tempCh;
 					newMap.insert({tempCh, myMap[c]});
 				}
 			}
 			this->myMap = newMap;
-			return out;
 		}
 		char spEncypt(char ch, int shift){
 			if (std::isalpha(ch)) {
@@ -798,7 +839,7 @@ class Caesar{
 			} 
 			else return ch;  // if ch is not character then ignore
 		}
-		string buildMap(string na){
+		string buildMap(const string& na){
 			std::map<char, int> list;
 			char x ;
 			int count =0;
@@ -822,19 +863,21 @@ class Caesar{
 			return out;
 		}
 		std::map<char, int> getMap(){ return myMap; }
-		string sortByFreq(string na){
+		string sortByFreq(){
 			// Tạo vector từ map để dễ dàng sắp xếp
 			std::vector<std::pair<char, int>> charFreqVector(myMap.begin(),myMap.end());
 			// Sắp xếp vector theo giá trị freq tăng dần
-			std::sort(charFreqVector.begin(), charFreqVector.end(), [](const auto& a, const auto& b) {
+			std::sort(charFreqVector.begin(), charFreqVector.end(), 
+			[](const std::pair<char, int>& a, const std::pair<char, int>& b) {
+				// return true-> not swap , return false -> swap
 				if(a.second == b.second){
 					auto x = a.first;
 					auto y = b.first;
 					if(islower(x)) x -= 58;
 					if(islower(y)) y -=58;
-					return x < y;
+					return x < y;   // ensure character 'z' < 'A' -> not swap
 				} 
-				return (a.second == b.second) ? a.first < b.first : a.second < b.second;
+				return a.second < b.second;
 			});
 
 			// Tạo chuỗi kết quả dựa trên vector đã sắp xếp
@@ -862,7 +905,7 @@ class Operating {
 			if(huffTree) delete huffTree;
 		};
 		/* internal method */
-		void LAPSE(string name){
+		void LAPSE(const string& name){
 			//B1: new Caesar and return result
 			Caesar* ca = new Caesar();
 			bool isGreaterThan3ch = false;
@@ -870,15 +913,15 @@ class Operating {
 			if(!isGreaterThan3ch) return ;    //note: name cus must contain from 3 character or more
 
 			string listAfterBuildMap = ca->buildMap(nameRearranged);
-			string nameAfterEncypt = ca->encryptCaesar(listAfterBuildMap);
-			string XList = ca->sortByFreq(nameAfterEncypt);
+			ca->encryptCaesar(listAfterBuildMap);
+			string XList = ca->sortByFreq();
 			map<char, int> freq = ca->getMap();
 
-			cout<<"XList: "<<XList<<endl;
-			cout<<"list map:\n";
-			for(auto m : freq){
-				cout<< m.first <<m.second<<" ";
-			} cout<<endl;
+			// cout<<"XList: "<<XList<<endl;
+			// cout<<"list map:\n";
+			// for(auto m : freq){
+			// 	cout<< m.first <<m.second<<" ";
+			// } cout<<endl;
 
 			//B2: build Huffman tree and rotate in "Customer class"
 			if(huffTree != nullptr) delete huffTree;    // have to implement HuffTree's Destructor
@@ -889,21 +932,23 @@ class Operating {
 			int Result = huffTree->binaryToDecimal(binEncode);
 			//B4: choose Restaurant
 			int ID = Result % MAXSIZE + 1;  //Note: Each of Res has Maxsize area, each of area is unlimited cus
-			cout<<"ID: "<<ID<<" Result: "<<Result<<endl;
+			//cout<<"ID: "<<ID<<" Result: "<<Result<<endl;
 			if(Result% 2 ==0) S->insert(ID, Result);
 			else G->insert(ID, Result);
+
+			delete ca;
 		}
 		void HAND(){
 			//print value of Huffman tree of cus came most recently in order from top to bottom, from left to right
-			huffTree->drawTree();
-			//huffTree->H_HAND();
+			//huffTree->drawTree();
+			huffTree->H_HAND();
 		}
 		void LIGHT() {}
 		/* sp to GRes method */
 		void KOKUSEN(){ G->G_KOKUSEN(); }
 		void LIMITLESS(int num){ 
-			G->displayAllRegion(); 
-			//G->G_LIMITLESS(num);
+			//G->displayAllRegion(); 
+			G->G_LIMITLESS(num);
 		} 
 		/* sp to SRes method */
 		void KEITEIKEN(int num){ S->S_KEITEIKEN(num); }
