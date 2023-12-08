@@ -17,16 +17,62 @@ class Heap {
         ~Heap() {
             delete[] elements;
         }
-        void push(T item);
-        int getItem(T item);
-        void remove(T item);
-        void clear();
+
+        void push(T item){
+            if (this->count == this->capacity) this->ensureCapacity(this->capacity * 2);
+            this->elements[count] = item;
+            ++this->count;
+            this->reheapUp(this->count - 1);
+        }
+        int getItem(T item) {
+            // TODO: return the index of item in heap
+            if (this->count == 0) return -1;
+            for (int i = 0; i < this->count; ++i) {
+                if (this->elements[i] == item) return i;
+            }
+            return -1;
+        }
+        void remove(T item) {
+            // TODO: remove the element with value equal to item
+            int index = this->getItem(item);
+            if (index == -1) return;
+            else {
+                this->elements[index] = this->elements[this->count - 1];
+                --this->count;
+                this->reheapDown(index);
+            }
+        }
+        void clear() {
+            // TODO: delete all elements in heap
+            delete[] this->elements;
+            this->elements = NULL;
+            this->count = 0;
+        }
            
-        bool isEmpty();
-        bool contains(T item);
-        T peek();
-        bool pop();
-        int size();
+        bool isEmpty(){
+            return (this->count == 0);
+        }
+        bool contains(T item){
+            if (this->isEmpty()) return false;
+            for (int i = 0; i < this->count; ++i) {
+                if (this->elements[i] == item) return true;
+            }
+            return false;
+        }
+        T peek(){ //return first element
+            if (this->isEmpty()) return -1;
+            return this->elements[0];
+        }
+        bool pop(){
+            if (this->isEmpty()) return false;
+            this->elements[0] = this->elements[this->count - 1];
+            --this->count;
+            this->reheapDown(0);
+            return true;
+        }
+        int size(){
+            return this->count;
+        }
 
         void printHeap()
         {
@@ -45,6 +91,17 @@ class Heap {
             this->elements = newElements;
             this->capacity = minCapacity;
         }
+        void reheapUp(int position){
+            if (position <= 0 || position >= this->count) return;
+            int parent = (position - 1) / 2;
+            if (this->elements[parent] < this->elements[position]) {
+                int temp = this->elements[parent];
+                this->elements[parent] = this->elements[position];
+                this->elements[position] = temp;
+                reheapUp(parent);
+            }
+            return;
+        }
         void reheapUp(int maxHeap[], int numberOfElements, int index)
         {
             if(index<=0 || index >= numberOfElements)   return;
@@ -55,7 +112,6 @@ class Heap {
             }
             return;
         }
-        void reheapUp(int position);
         void reheapDown(int maxHeap[], int numberOfElements, int index)
         {
             if(index > (numberOfElements)/2 || index<0)   return;
@@ -80,87 +136,3 @@ class Heap {
         }
 
 };
-template<class T>
-int Heap<T>::size(){
-    return this->count;
-}
-
-template<class T>
-bool Heap<T>::isEmpty(){
-    return (this->count == 0);
-}
-
-template<class T>
-T Heap<T>::peek(){
-    if (this->isEmpty()) return -1;
-    return this->elements[0];
-}
-
-template<class T>
-bool Heap<T>::contains(T item){
-    if (this->isEmpty()) return false;
-    for (int i = 0; i < this->count; ++i) {
-        if (this->elements[i] == item) return true;
-    }
-    return false;
-}
-
-template<class T>
-bool Heap<T>::pop(){
-    if (this->isEmpty()) return false;
-    this->elements[0] = this->elements[this->count - 1];
-    --this->count;
-    this->reheapDown(0);
-    return true;
-}
-
-template<class T>
-int Heap<T>::getItem(T item) {
-    // TODO: return the index of item in heap
-    if (this->count == 0) return -1;
-    for (int i = 0; i < this->count; ++i) {
-        if (this->elements[i] == item) return i;
-    }
-    return -1;
-}
-
-template<class T>
-void Heap<T>::remove(T item) {
-    // TODO: remove the element with value equal to item
-    int index = this->getItem(item);
-    if (index == -1) return;
-    else {
-        this->elements[index] = this->elements[this->count - 1];
-        --this->count;
-        this->reheapDown(index);
-    }
-}
-
-template<class T>
-void Heap<T>::clear() {
-    // TODO: delete all elements in heap
-    delete[] this->elements;
-    this->elements = NULL;
-    this->count = 0;
-}
-
-template<class T>
-void Heap<T>::push(T item){
-    if (this->count == this->capacity) this->ensureCapacity(this->capacity * 2);
-    this->elements[count] = item;
-    ++this->count;
-    this->reheapUp(this->count - 1);
-}
-
-template<class T>
-void Heap<T>::reheapUp(int position){
-    if (position <= 0 || position >= this->count) return;
-    int parent = (position - 1) / 2;
-    if (this->elements[parent] < this->elements[position]) {
-        int temp = this->elements[parent];
-        this->elements[parent] = this->elements[position];
-        this->elements[position] = temp;
-        reheapUp(parent);
-    }
-    return;
-}

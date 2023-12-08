@@ -7,9 +7,10 @@ We use sort to arrange the order of entering Res most recently in both GRes and 
 update 03.12: recently finished HuffTree, need rotate as AVLTree
 mini task: implement KOKUSEN and HAND func, more than is implement Heap class
 update 05.12: task unfinish are: rotate HuffTree, permutation of G_KOKUSEN, HEAP class(build heap &&KEITEIKEN, CLEAVE)
+update 09.12: heap finished, no memory leak, please build rotate HuffTree
 */
 class Customer{
-	public:
+	private:
 		int result;
 		int timeIn;
 	public:
@@ -21,6 +22,10 @@ class Customer{
 		void print(){
 			cout<<result<<endl;
 		}
+		void set(int res, int ti){
+			this->result = res;
+			this->timeIn = ti;
+		}
 		int getResult(){
 			return this->result;
 		}
@@ -29,7 +34,7 @@ class Customer{
 		}
 };
 
-/*=========== BUILD HuffTree ===========*/
+/*============== BUILD HuffTree ============*/
 template<typename E> 
 class HuffNode {
     public:
@@ -367,7 +372,7 @@ HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
 }
 /*=========== END CLASS HuffTree ===========*/
 
-/*=========== BUILD HashTable ===========*/
+/*============ BUILD HashTable =============*/
 template<class T>
 class BST
 {
@@ -392,13 +397,13 @@ public:
     }
     Node* addRec(Node*& root, T& value) {
         if (root == nullptr) return new Node(value);
-        if (value < root->value) root->pLeft = addRec(root->pLeft, value);
+        if (value->getResult() < root->value->getResult()) root->pLeft = addRec(root->pLeft, value);
         else root->pRight = addRec(root->pRight, value);
         return root;
     }
 
-    void deleteKey(T& value) {
-        root = deleteNodeRec (root, value); 
+    void deleteKey(int res, int ti) {
+        root = deleteNodeRec (root, res, ti); 
     }
     Node* minValueNode(Node*& root) {   //sp to deleteNodeRec func
         Node* current = root;
@@ -406,25 +411,29 @@ public:
             current = current->pLeft;
         return current;
     }
-    Node* deleteNodeRec(Node*& root, T& value) {
+    Node* deleteNodeRec(Node*& root, int res, int ti) {
         if (root == nullptr) return root;
-        if (value < root->value) root->pLeft = deleteNodeRec(root->pLeft, value);
-        else if (value > root->value) root->pRight = deleteNodeRec(root->pRight, value);
-        else {
-            if (root->pLeft == nullptr) {
-                Node* temp = root->pRight;
-                delete root;
-                return temp;
-            }
-            else if (root->pRight == nullptr) {
-                Node* temp = root->pLeft;
-                delete root;
-                return temp;
-            }
-            Node* temp = minValueNode(root->pRight);
-            root->value = temp->value;
-            root->pRight = deleteNodeRec(root->pRight, temp->value);
-        }
+        if (res < root->value->getResult()) root->pLeft = deleteNodeRec(root->pLeft, res, ti);
+        else if (res > root->value->getResult()) root->pRight = deleteNodeRec(root->pRight, res, ti);
+        else { //if result equal, check time
+			if(ti != root->value->getTimeIn()) root->pRight = deleteNodeRec(root->pRight, res, ti);
+			else { 
+				if (root->pLeft == nullptr) { 
+					Node* temp = root->pRight;
+					delete root;
+					return temp;
+				}
+				else if (root->pRight == nullptr) { 
+					Node* temp = root->pLeft;
+					delete root;
+					return temp;
+				}
+				// find temp and save attributes of temp into root, after delete address of old temp
+				Node* temp = minValueNode(root->pRight);
+				root->value->set(temp->value->getResult(), temp->value->getTimeIn());
+				root->pRight = deleteNodeRec(root->pRight, temp->value->getResult(), temp->value->getTimeIn());
+			}
+		}
         return root;
     }    
 
@@ -478,8 +487,9 @@ private:
 public:
 	HashTable(){}
 	~HashTable(){
-		for(auto& x : regionManage){
-			delete x;
+		int n = regionManage.size();
+		for(int i =0; i<n; i++){
+			delete regionManage[i];
 		}
 		regionManage.clear();
 		// auto call Destructor of BST
@@ -500,25 +510,21 @@ public:
 			regionManage.push_back(reg);
 		}
 	}
-	void deleteFromRegion(int region, T& value) { 
-		hashedBSTs[region].deleteKey(value);
-	}
-
-	bool compareCustomers(Customer*& a, Customer*& b) {
-		return a->getTimeIn() < b->getTimeIn();
+	
+	//support for KOKUSEN func
+	void deleteFromRegion(int region, int res, int ti) { 
+		hashedBSTs[region].deleteKey(res, ti);
 	}
 	vector<T> listCusAtRegion(int region){  // traverse = post-order and arrange timeIn
  		vector<T> arr = hashedBSTs[region].postOrder();
 		// sort in order time ascending
-		auto compare = [this](Customer*& a, Customer*& b) {
-			return this->compareCustomers(a, b);
+		auto compare = [](Customer*& a, Customer*& b) {
+			return a->getTimeIn() < b->getTimeIn();
 		};
 		std::sort(arr.begin(), arr.end(), compare);
 
 		return arr;
 	}
-
-	/* support for KOKUSEN func */
 	void deleteAllRegion(){
 		//B1: convert BST tree -> array in order post-order
 		for(auto reg : regionManage){
@@ -528,33 +534,36 @@ public:
 			// 	cout<<"result: "<<x->getResult()<<" timeIn: "<<x->getTimeIn()<<endl;
 			// } 
 
-		//B2: calculate num of permutation(hoán vị) of array 
+			vector<std::pair<int, int>> listPair;
 			vector<int> arr;   // save result of listCus in BST in order time ascending
-			for(T x : listCus){
+			for(T x : listCus) {
+				listPair.push_back(std::make_pair(x->getResult(), x->getTimeIn()));
 				arr.push_back(x->getResult());
 			}
+		//B2: calculate num of permutation(hoán vị) of array 
 			int N = arr.size();
 			int fact[N];
 			calculateFact(fact, N);
 			int Y = countWays(arr, fact);
 			Y %= MAXSIZE;
-			//cout<<"Y :"<<Y<<endl;
+			//cout<<"Y :"<<Y<<" at Region: "<<reg->region<<endl;
 
 		//B3: delete Y cus in order FIFO
 			for(int i =0; i< Y && i <N; i++){
-				cout<<"delete Cus: "<<listCus[i]->getResult()<<endl;
-				deleteFromRegion(reg->region, listCus[i]);
+				//cout<<"delete Cus: "<<listPair[i].first<<" timeIn: "<<listPair[i].second<<endl;
+				deleteFromRegion(reg->region, listPair[i].first, listPair[i].second);
 			}
 		}
 	}
+	// Calculate permutation
 	void calculateFact(int fact[], int N){
 		fact[0] = 1;
 		for (long long int i = 1; i < N; i++) {
 			fact[i] = fact[i - 1] * i;
 		}
 	}
+	int nCr(int fact[], int N, int R){ 
 		// Function to get the value of nCr
-	int nCr(int fact[], int N, int R){
 		if (R > N)
 			return 0;
 	
@@ -564,9 +573,10 @@ public:
 	
 		return res;
 	}
+	int countWays(vector<int>& arr, int fact[]){
 		// Function to count the number of ways
 		// to rearrange the array to obtain same BST
-	int countWays(vector<int>& arr, int fact[]){
+
 		// Store the size of the array
 		int N = arr.size();
 	
@@ -620,12 +630,11 @@ public:
 		return nCr(fact, N - 1, N1)
 			* countLeft * countRight;
 	}
-	/* end support for KOKUSEN func */
 
 	void displayRegion(int region) { 
 		cout << "=========Region " << region << " - BST in-order: =========="<<endl;
 		hashedBSTs[region].displayInOrder();
-		cout<<" ================END DISPLAY================"<<endl;
+		//cout<<"=================END DISPLAY================"<<endl;
 	}        
 	void displayAllRegion(){
 		for(auto reg: regionManage){
@@ -642,84 +651,252 @@ public:
 		friend class HashTable;
 	};
 };
-/*=========== END HashTable ===========*/
+/*============ END HashTable ===============*/
 
-/*=========== BUILD minHeap ===========*/
+/*============ BUILD minHeap ===============*/
 template<class T>
 class Region{
 	std::vector<T> cusManange;
-	int number; // Region at number ?
+	int ID; // ID = what is region number ?
 	int time; // time use region recently, min = 0
-	int countNumber;
+	int timeStart;
 public:
-	Region(int n, T val, int ti){
-		number = n;
+	Region(int id, T val, int ti){
+		ID = id;
 		cusManange.push_back(val);
-		time = ti;
-		countNumber = 1;
+		time = timeStart = ti;
 	}
 	~Region(){
-		for(T c: cusManange){
-			delete c;
+		int n = NUM();
+		for(int i =0; i< n; i++){
+			T x = cusManange[i];
+			delete x;
 		}
 		cusManange.clear();
 	}
+
 	void addCus(T newCus){
 		cusManange.push_back(newCus);
-		countNumber++;
-	}
-	int size(){
-		return int(cusManange.size()); 
 	}
 	void updateTime(int ti){
 		this->time = ti;
 	}
-	int regionNumber(){
-		return number;
+	int NUM(){  // current number of cus in region
+		return int(cusManange.size());
+	}
+	int atRegion(){
+		return ID;
+	}
+	int timeInitial(){
+		return this->timeStart;
+	}
+	int timeUseRecently(){
+		return this->time;
+	}
+	void printLIFO(int num){
+		if(num > this->NUM()) num = this->NUM();
+		int cusCurrent = this->NUM() -1;
+		int result;
+		for(int i =0; i< num; i++){
+			result = cusManange[cusCurrent--]->getResult();
+			cout<<this->ID<<"-"<<result<<endl;
+		} 
+	}
+	void printAndDeleteFIFO(int num){
+		if(num > this->NUM()) num = this->NUM();
+		int result;
+		for(int i= 0; i< num; i++){
+			result = cusManange[i]->getResult();
+			cout<<this->ID<<"-"<<result<<endl;
+		}
+		for(int i=0 ; i< num; i++){
+			T cus = cusManange[0];
+			cusManange.erase(cusManange.begin());
+			delete cus;
+		}
 	}
 };
-template<class T>
-struct Compare {
-    bool operator()(Region<T>* a, Region<T>* b) {
-        return a->size() > b->size();
-    }
-};
-
 template<class T>
 class Heap{
 	// manage Customer class
 	private:
 		int timeUseRegion;
-		std::priority_queue<Region<T>*, vector<Region<T>*>, Compare<T>> minHeap;
-		vector<Region<T>*> regionManage; // num Region is created
+		int size;
+		vector<Region<T>*> region; // num Region is created, there are heap tree
 	public:
-		Heap(): timeUseRegion(0){}
-		~Heap(){
-			for(auto& x: regionManage){
-				delete x;
-			}
-			regionManage.clear();
+		Heap() {
+			timeUseRegion = 0;
+			size = MAXSIZE;
 		}
-		void insertToRegion(int region, T val){
+		~Heap(){
+			int n = this->Count();
+			for(int i =0; i<n; i++){
+				delete region[i];
+			}
+			region.clear();
+		}
+
+		void insertToRegion(int reg, T val){ 
 			// Step 1: if region uncreated, then create region
 			bool isCreated = false;
-			for(auto r : regionManage){ 
-				if(r->regionNumber() == region){
-					r->addCus(val);
+			int i = 0; // index of reg in region if region containning reg
+			for(Region<T>*& r : region){ 
+				if(r->atRegion() == reg){
 					isCreated = true;
+					r->addCus(val);
+					r->updateTime(timeUseRegion++);
+					reheapDown(region, this->Count(), i); 
 					break;
 				}
+				else i++;
 			}
 			if(!isCreated){
-				Region<T>* reg = new Region<T>(region, val, timeUseRegion++);
-				minHeap.push(reg);
-				regionManage.push_back(reg);
+				Region<T>* newReg = new Region<T>(reg, val, timeUseRegion++);
+				region.push_back(newReg);
+				reheapUp(this->Count() -1);
 			}
 		}
-};
-/*=========== END minHeap ===========*/
+		void reheapUp(int position){  //using when new region is created
+			if (position <= 0 || position >= this->Count()) return;
+            int parent = (position - 1) / 2;
+			if(region[parent]->NUM() > region[position]->NUM()){ 
+				swap(region[parent], region[position]);  //is Swap func running?
+				reheapUp(parent);
+			}
+            return;
+		}
+		void reheapDown(vector<Region<T>*>& minHeap, int numberOfElements, int index) {
+            if(index >= numberOfElements || index<0)   return;
+            int i= index;
+            int smallest_e=0;
+                if((2*i + 1) < numberOfElements){
+                    int left_e= 2*i +1;        
+                    if((2*i +2) < numberOfElements){
+                        int right_e= 2*i +2;
+                        if(minHeap[left_e]->NUM() < minHeap[right_e]->NUM())    smallest_e= left_e;
+                        else if(minHeap[left_e]->NUM() == minHeap[right_e]->NUM()){  
+							//choose the child with the smallest num cus
+							int timeUseL = minHeap[left_e]->timeUseRecently();
+							int timeUseR = minHeap[right_e]->timeUseRecently();
+							if(timeUseL < timeUseR) smallest_e = left_e;
+							else smallest_e = right_e;
+						}
+						else   smallest_e= right_e;
+                    }
+                    else    smallest_e= left_e;
+                }
+                else    return;
+                if(minHeap[i]->NUM() > minHeap[smallest_e]->NUM()){ 
+                    swap(minHeap[i], minHeap[smallest_e]);
+                    reheapDown(minHeap, numberOfElements, smallest_e);
+                }
+				else if(minHeap[i]->NUM() == minHeap[smallest_e]->NUM()){ 
+					int timeUseP = minHeap[i]->timeUseRecently();
+					int timeUseC = minHeap[smallest_e]->timeUseRecently();
+					if(timeUseC < timeUseP) swap(minHeap[i], minHeap[smallest_e]);
+					reheapDown(minHeap, numberOfElements, smallest_e);
+				}
 
-/*=========== CLASS RESTAURANT ===========*/
+            return;
+        }
+
+		// sp for KEITEINEN func
+		vector<std::pair<Region<T>*, int>> listRegionSorted(int num){
+			vector<std::pair<Region<T>*, int>> list;
+			std::queue<int> indices;
+			indices.push(0);
+			while (!indices.empty()) {
+				int current = indices.front();
+				indices.pop();
+
+				list.push_back(std::make_pair(region[current], current));
+				if(int(list.size()) == num) break;
+
+				int leftChild = 2 * current + 1;
+				int rightChild = 2 * current + 2;
+
+				if (leftChild < this->Count()) 
+					indices.push(leftChild);
+
+				if (rightChild < this->Count()) 
+					indices.push(rightChild);
+			} 
+			std::sort(list.begin(), list.end(), 
+			[](std::pair<Region<T>*, int>& a, std::pair<Region<T>*, int>& b){
+				Region<T>* x = a.first;
+				Region<T>* y = b.first;
+				if(x->NUM() == y->NUM()){
+					return x->timeUseRecently() < y->timeUseRecently();
+				}
+				return x->NUM() < y->NUM();
+			});
+			return list;
+		}
+		void removeSubRegFromRegion(Region<T>*& reg, int i){
+			Region<T>* lastElement = region[this->Count() -1];
+			region[i] = lastElement;
+			region.erase(region.begin() + this->Count() -1);
+			reheapDown(region, this->Count(), i);
+			delete reg; 
+			reg = nullptr;
+		}
+		void updateList(vector<std::pair<Region<T>*, int>>& list, int index){
+			//update list.second from element at index to last element
+			int n = this->Count();
+			for(int i = index; i <n; i++){
+				Region<T>* reg = list[i].first;
+				for(int k = 0; k <n; k++){
+					if(region[k]->timeInitial() == reg->timeInitial()){
+						list[i].second = k;
+						break;
+					}
+				}
+			}
+		}
+		void deleteNumRegion(int num){
+			if(this->Count() ==0) return ;
+			// delete num cus, num = (1, MAXSIZE) in order FIFO
+			//B1: choose area has not been used the longest and has the fewest visitors
+			vector<std::pair<Region<T>*, int>> list = listRegionSorted(num);
+
+			// cout<<"list region sorted: \n";
+			// for(std::pair<Region<T>*, int> li : list){
+			// 	Region<T>* reg = li.first;
+			// 	cout<<"Region: "<<reg->atRegion()<<" NUM: "<<reg->NUM()<<" ti: "<<reg->timeUseRecently()
+			// 	<<" current index: "<<li.second<<endl;
+			// }
+
+			//B2: delete each of cus in order FIFO and print cus infor
+			for(int i =0; i< int(list.size()); i++){
+				Region<T>* reg = list[i].first;
+				reg->printAndDeleteFIFO(num);
+				if(reg->NUM() == 0) {
+					cout<<"clear sub area: "<<reg->atRegion()<<endl;
+					removeSubRegFromRegion(reg, list[i].second);
+					updateList(list, i+1);
+				} 
+			}
+		}
+
+		int Count(){  //num region is using
+			return int(region.size());
+		}
+		
+		void displayPreOrder(int index, int num) { 
+			if(index >= this->Count()) return ;
+
+			cout << "=========Region " << region[index]->atRegion() <<" NUM: "<<region[index]->NUM()
+			<< " - minHeap PreOrder: =========="<<endl;
+			this->region[index]->printLIFO(num);
+			//cout<<" ================END DISPLAY================"<<endl;
+
+			displayPreOrder(2 * index + 1, num); // Left child
+       		displayPreOrder(2 * index + 2, num); // Right child
+		}        
+};
+/*============== END minHeap ===============*/
+
+/*============ CLASS RESTAURANT ============*/
 class GRes{
 	private:
 		HashTable<Customer*> *hash;
@@ -732,6 +909,7 @@ class GRes{
 		~GRes(){
 			delete hash;
 		};
+		
 		void G_KOKUSEN(){ //delete Y cus in each of area
 			hash->deleteAllRegion();
 		}
@@ -739,12 +917,11 @@ class GRes{
 			// print BST tree at num area in order in-order
 			hash->displayRegion(num);
 		}
-
-		void insert(int region, int result){
-			Customer* cus = new Customer(result, timeInRes++);
+		void insert(int region, int result){ 
+			Customer* cus = new Customer(result, timeInRes++); 
 			hash->insertToRegion(region, cus);
 		}
-		void displayAllRegion(){
+		void displayAllRegion(){ //check nhớ xóa
 			hash->displayAllRegion();
 		}
 };
@@ -762,20 +939,18 @@ class SRes{
 			delete heap;
 		};
 		void S_KEITEIKEN(int num){
-			// delete num cus, num = (1, MAXSIZE) in order FIFO
-			//B1: choose area has not been used the longest and has the fewest visitors
-			//B2: delete each of cus in order FIFO and print cus infor
+			heap->deleteNumRegion(num);
 		};
 		void S_CLEAVE (int num) {
 			// print infor of num cus in order LIFO
+			heap->displayPreOrder(0, num);
 		};	
-		
 		void insert(int region, int result){
 			Customer* cus = new Customer(result, timeInRes++);
 			heap->insertToRegion(region, cus);
 		}
 };
-/*=========== END RESTAURANT ===========*/
+/*============= END RESTAURANT =============*/
 
 class Caesar{
 	private:
@@ -940,10 +1115,9 @@ class Operating {
 		}
 		void HAND(){
 			//print value of Huffman tree of cus came most recently in order from top to bottom, from left to right
-			//huffTree->drawTree();
-			huffTree->H_HAND();
+			huffTree->drawTree();
+			//huffTree->H_HAND();
 		}
-		void LIGHT() {}
 		/* sp to GRes method */
 		void KOKUSEN(){ G->G_KOKUSEN(); }
 		void LIMITLESS(int num){ 
