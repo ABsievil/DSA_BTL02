@@ -8,6 +8,7 @@ update 03.12: recently finished HuffTree, need rotate as AVLTree
 mini task: implement KOKUSEN and HAND func, more than is implement Heap class
 update 05.12: task unfinish are: rotate HuffTree, permutation of G_KOKUSEN, HEAP class(build heap &&KEITEIKEN, CLEAVE)
 update 09.12: heap finished, no memory leak, please build rotate HuffTree
+update 10.12: is rotating, task: 2 subtree is balance, but tree unbalance, how to fix? what is this case?
 */
 class Customer{
 	private:
@@ -35,93 +36,289 @@ class Customer{
 };
 
 /*============== BUILD HuffTree ============*/
+enum BalanceValue
+{
+	LL = -2,
+    LH = -1,
+    EH = 0,
+    RH = 1,
+	RR = 2
+};  
 template<typename E> 
 class HuffNode {
-    public:
+    protected:
+		E it;
+		int wgt;
+		int time;
+		BalanceValue balance;
+		HuffNode<E>* lc; //left child
+        HuffNode<E>* rc; //right child
+	public:
         virtual ~HuffNode(){}
-        virtual int weight() =0;
+        virtual int weight() { return this->wgt;}
+		virtual E val() 	 {return this->it;}
+		virtual int Time()   { return time;}
+		virtual void setTime(int ti) {time = ti;}
+        virtual void print() {cout<<it<<wgt;}
+		virtual void setLeft(HuffNode<E>* b){ lc = b; }
+        virtual void setRight(HuffNode<E>* b) { rc = b; }
+
         virtual bool isLeaf()= 0;
         virtual HuffNode<E>* left() =0; 
         virtual HuffNode<E>* right() =0;
-        virtual void print() = 0;
+
+	public: /* Rotate method */
+		int getHeight(HuffNode<E>* r){
+			if (r == NULL)
+                return 0;
+            int lh = this->getHeight(r->left());
+            int rh = this->getHeight(r->right());
+            return (lh > rh ? lh : rh) + 1;
+		}
+		int getMinHeight(HuffNode<E>* r){
+			if (r == NULL)
+                return 0;
+            int lh = this->getHeight(r->left());
+            int rh = this->getHeight(r->right());
+            return (lh > rh ? rh : lh) + 1;
+		}
+        HuffNode<E> *rotateLeft(HuffNode<E> *oldRoot){
+			if(!oldRoot) return nullptr;
+			if(!oldRoot->rc) return oldRoot;
+            HuffNode<E> *newRoot = oldRoot->right();
+            oldRoot->rc = newRoot->left();
+            newRoot->lc = oldRoot;
+            return newRoot;
+        }
+        HuffNode<E> *rotateRight(HuffNode<E> *oldRoot){
+			if(!oldRoot) return nullptr;
+			if(!oldRoot->lc) return oldRoot;
+            HuffNode<E> *newRoot = oldRoot->left();
+            oldRoot->lc = newRoot->right();
+            newRoot->rc = oldRoot;
+            return newRoot;
+        }
+        
+		int getBalance(HuffNode<E> *subroot){
+			if (!subroot) return 0;
+			return getHeight(subroot->left()) - getHeight(subroot->right());
+		}
+		void setBalance(int key){
+			if(key ==0) this->balance = EH;
+			else if(key == -1) this->balance = RH;
+			else if(key == 1) this->balance = LH;
+			else if(key > 1) this->balance = LL;
+			else this->balance = RR;
+		}
+		HuffNode<E>* balanceRight(HuffNode<E>* root){
+			if(root == nullptr) return nullptr;
+			int key = getBalance(root);
+			if(key >=-1 && key <=1) return root;
+			root = rotateRight(root);
+			key = getBalance(root);
+			int keyR = getBalance(root->rc);
+			if(key >=-1 && key <=1 && keyR >=-1 && keyR <=1) return root;
+			root->rc = balanceRight(root->right());
+			return root;
+		}
+		HuffNode<E>* balanceLeft(HuffNode<E>* root){
+			if(root == nullptr) return nullptr;
+			int key = getBalance(root);
+			if(key >=-1 && key <=1) return root;
+			root = rotateLeft(root);
+			key = getBalance(root);
+			int keyL = getBalance(root->lc);
+			if(key >=-1 && key <=1 && keyL >=-1 && keyL <=1) return root;
+			root->rc = balanceLeft(root->left());
+			return root;
+		}
+		void setBalanceValueAllNode(HuffNode<E> * root){
+			if(root == nullptr) return ;
+			if(root->rc) setBalanceValueAllNode(root->rc);
+			if(root->lc) setBalanceValueAllNode(root->lc);
+			int key = getBalance(root);
+			root->setBalance(key);
+		}
+		HuffNode<E>* balanceTree(HuffNode<E>* root) {
+			if(root == nullptr) return nullptr;
+			int key = getBalance(root);
+			root->setBalance(key);    // set temporary balance for root
+			// B1: check subTree is perfect tree
+			int keyL = getBalance(root->left());
+			int keyR = getBalance(root->right());
+			if(keyL == 0 && keyR ==0) {
+				if(key >=-1 && key <=1) return root;  // temporary balance is official balance
+				int HLeftTree = this->getHeight(root->left());
+				int HRightTree = this->getHeight(root->right());
+				
+				if(HLeftTree > HRightTree) {
+					HuffNode<E>* newRoot = this->rotateRight(root);
+					newRoot->rc = balanceRight(newRoot->rc);
+					int newBalance = getBalance(newRoot);
+					newRoot->setBalance(newBalance);
+					setBalanceValueAllNode(newRoot);
+					key = getBalance(newRoot);
+					if(key >= -1 && key <=1) return newRoot;
+					else return balanceTree(newRoot);
+				}
+				else{
+					HuffNode<E>* newRoot = this->rotateLeft(root);
+					newRoot->lc = balanceLeft(newRoot->lc);
+					int newBalance = getBalance(newRoot);
+					newRoot->setBalance(newBalance);
+					key = getBalance(newRoot);
+					if(key >= -1 && key <=1) return newRoot;
+					else return balanceTree(newRoot);
+				}
+			}
+			else if(keyL ==0) { 
+				int HLeftTree = this->getHeight(root->left());
+				int HRightTree = this->getHeight(root->right());
+				int HRightMinTree = this->getMinHeight(root->right());
+				if(key >=-1 && key <=1) { //check if tree is balance
+					if(std::abs(HLeftTree - HRightTree) <= 1 && std::abs(HLeftTree - HRightMinTree) <= 1)
+						return root;  // temporary balance is official balance
+				}
+
+				if(HLeftTree > HRightTree) {
+					HuffNode<E>* newRoot = this->rotateRight(root);
+					newRoot->rc = balanceRight(newRoot->rc);
+					int newBalance = getBalance(newRoot);
+					newRoot->setBalance(newBalance);
+					setBalanceValueAllNode(newRoot);
+					key = getBalance(newRoot);
+					if(key >= -1 && key <=1) return newRoot;
+					else return balanceTree(newRoot);
+				}
+				else{
+					HuffNode<E>* newRoot = this->rotateLeft(root);
+					newRoot->lc = balanceLeft(newRoot->lc);
+					int newBalance = getBalance(newRoot);
+					newRoot->setBalance(newBalance);
+					setBalanceValueAllNode(newRoot);
+					key = getBalance(newRoot);
+					if(key >= -1 && key <=1) return newRoot;
+					else return balanceTree(newRoot);
+				}
+			}
+			else if(keyR ==0){ 
+				int HLeftTree = this->getHeight(root->left());
+				int HLeftMinTree = this->getMinHeight(root->left());
+				int HRightTree = this->getHeight(root->right());
+				if(key >=-1 && key <=1) { //check if tree is balance
+					if(std::abs(HLeftTree - HRightTree) <= 1 && std::abs(HLeftMinTree - HRightTree) <= 1)
+						return root;  // temporary balance is official balance
+				}
+
+				if(HLeftTree > HRightTree) {
+					HuffNode<E>* newRoot = this->rotateRight(root);
+					newRoot->rc = balanceRight(newRoot->rc);
+					int newBalance = getBalance(newRoot);
+					newRoot->setBalance(newBalance);
+					setBalanceValueAllNode(newRoot);
+					key = getBalance(newRoot);
+					if(key >= -1 && key <=1) return newRoot;
+					else return balanceTree(newRoot);
+				}
+				else{
+					HuffNode<E>* newRoot = this->rotateLeft(root);
+					newRoot->lc = balanceLeft(newRoot->lc);
+					int newBalance = getBalance(newRoot);
+					newRoot->setBalance(newBalance);
+					setBalanceValueAllNode(newRoot);
+					key = getBalance(newRoot);
+					if(key >= -1 && key <=1) return newRoot;
+					else return balanceTree(newRoot);
+				}
+			}
+			//B2: check case 2 subTree is balance and tree balance
+
+			// B3: check case normal
+			// Left Left Case  
+			if(key >= 1 && keyL >=1)
+				return rotateRight(root);
+
+			// Right Right Case  
+			if(key <= -1 && keyR <= -1)
+				return rotateLeft(root);
+
+			// Left Right Case  
+			if(key >= 1 && keyL <= -1){
+				root->lc = rotateLeft(root->lc);
+				return rotateRight(root);
+			}
+
+			// Right Left Case  
+			if(key <= -1 && keyR >= 1){
+				root->rc = rotateRight(root->rc);
+				return rotateLeft(root);
+			}
+			return root;
+			throw out_of_range("detect error! rotate unexpected");
+		}
 };
 template<typename E>
 class LeafNode: public HuffNode<E>{
-    private:
-        E it;
-        int wgt;
     public:
-       LeafNode(const E& val, int freq): it(val), wgt(freq){}
+       LeafNode(const E& val, int freq, int ti){
+			this->it = val;
+			this->wgt = freq;
+			this->time = ti;
+			this->balance = EH;
+			this->lc = nullptr;
+			this->rc = nullptr;
+	   }
 	   ~LeafNode(){}
 
-       int weight() { return wgt;}
-       E val() {return it;}
        bool isLeaf() { return true; } 
        HuffNode<E>* left() { return nullptr;}
        HuffNode<E>* right() { return nullptr;}
-       void print() {cout<<it<<wgt; }
+	   void setLeft(HuffNode<E>* b) override {}
+	   void setRight(HuffNode<E>* b) override {}
 };
 template<typename E>
 class IntlNode: public HuffNode<E>{
-    private:
-        HuffNode<E>* lc; //left child
-        HuffNode<E>* rc; //right child
-        int wgt;         // subtree weight
     public:
-        IntlNode(HuffNode<E> *l, HuffNode<E> *r){
-            wgt = l->weight() + r->weight();
-            lc = l;
-            rc = r;
+        IntlNode(HuffNode<E> *l, HuffNode<E> *r, int ti){
+            this->lc = l; 
+			this->rc = r;
+			this->it = '$';
+            this->wgt = l->weight() + r->weight();
+			this->time = ti;
         }
 		~IntlNode(){}
 
-        int weight(){ return wgt;}
         bool isLeaf(){ return false; }
-
-        HuffNode<E>* left() { return lc;}
-        HuffNode<E>* right() { return rc;}
-
-        void setLeft(HuffNode<E>* b){ lc = (HuffNode<E>*)b; }
-        void setRight(HuffNode<E>* b) { rc = (HuffNode<E>)b; }
-
-        void print() {cout<<wgt; }
+        HuffNode<E>* left() { return this->lc;}
+        HuffNode<E>* right() { return this->rc;}
 };
 
-enum BalanceValue
-{
-    LH = -1,
-    EH = 0,
-    RH = 1
-};  
 template<typename E>
 class HuffTree {
     private:
         HuffNode<E>* root;
-		HuffTree<E>* leftChild;
-		HuffTree<E>* rightChild;
     public:
         int time;
         class Node;
         // Constructor 
-        HuffTree(): root(nullptr), leftChild(nullptr), rightChild(nullptr){}
-        HuffTree(const E& val, int freq, int ti) {  //using for LeafNode
-			root = new LeafNode<E>(val, freq); 
-			time = ti; 
-			leftChild = rightChild = nullptr;
-		}
-        HuffTree(HuffTree<E>*& l, HuffTree<E>*& r, int ti) { //using for IntlNode
-			root = new IntlNode<E>(l->Root(), r->Root()); 
-			time = ti; 
-			this->leftChild = l;
-			this->rightChild = r;
-		}
+        HuffTree(): root(nullptr){}
+		HuffTree(HuffNode<E>*& r): root(r){}
 		~HuffTree(){
-			if(leftChild) delete leftChild; leftChild = nullptr;
-			if(rightChild) delete rightChild; rightChild = nullptr;
-			if(root) delete root; root = nullptr;
+			drawTree();
+			//system("pause");
+			clear(this->root);
+		}
+		void clear(HuffNode<E>* r){
+			if(r == nullptr) return ;
+			//cout<<"clear root: "; r->print(); cout<<endl;
+			if(r->left()) clear(r->left());
+			if(r->right()) clear(r->right());
+			delete r;
+			r = nullptr;
 		}
 
         HuffNode<E> *Root(){ return root; }
+		void setRoot(HuffNode<E> * r){root = r;}
         int weight(){ return root->weight(); }
 
         string getHuffmanCode(HuffNode<E>* r, char c, string currentPath = "") {
@@ -151,6 +348,7 @@ class HuffTree {
         }
 		string binEncypt(const string& str) {
 			string out = "";
+			if(int(str.length()) == 1) return "0";
 			for(char c: str){
 				string leftPath = getHuffmanCode(root->left(), c, "0");
                 string rightPath = getHuffmanCode(root->right(), c, "1");
@@ -227,28 +425,31 @@ class HuffTree {
 			int level = 0;
 			int keyOnly = height - 1;
 			printNSpace(f_space + keyOnly--);
-			while (!myQ.empty())
-			{
+			while (!myQ.empty()) {
 				for(int i=0 ; i< maxNode; i++){
 					temp = myQ.front();
 					myQ.pop();
 					if(temp == NULL) {
 						cout<<"_";
-						printNSpace(space + 1);
+						printNSpace(space);
 						continue;
 					}
-					temp->print();
+					//temp->print();
 					if(temp->isLeaf()){
-						LeafNode<E>* leaf = static_cast<LeafNode<E>*>(temp);
-						string x = ""; x += leaf->val();  x += to_string(leaf->weight());
-						int len = x.length();
-						printNSpace(space - len + 2);
+						// LeafNode<E>* leaf = static_cast<LeafNode<E>*>(temp);
+						// string x = ""; x += leaf->val();  x += to_string(leaf->weight());
+						// int len = x.length();
+						// printNSpace(space - len + 2);
 						//cout<<"space: "<<space<<" len: "<<len<<endl;
+						temp->print();
+						printNSpace(space);
 					}
 					else {
-						string x = to_string(temp->weight());
-						int len = x.length();
-						printNSpace(space - len + 3);
+						// string x = to_string(temp->weight());
+						// int len = x.length();
+						// printNSpace(space - len + 3);
+						cout<<" "; temp->print();
+						printNSpace(space);
 					}
 				} 
 				cout<<endl;
@@ -274,101 +475,58 @@ class HuffTree {
 		void H_HAND() const {
 			traverseInOrder(root);
 		}
-	public:
-        class Node
-        {
-        private:
-            E data;
-            Node *pLeft, *pRight;
-            BalanceValue balance;
-            friend class HuffTree<E>;
-
-        public:
-            Node(E value) : data(value), pLeft(NULL), pRight(NULL), balance(EH) {}
-            ~Node() {}
-        };
-
-        int getHeightRec(HuffNode<E>* r){
-			if (r == NULL)
-                return 0;
-            int lh = this->getHeight(r->left());
-            int rh = this->getHeight(r->right());
-            return (lh > rh ? lh : rh) + 1;
-		}
-
-        // rotate func
-        HuffNode<E> *rotateLeft(HuffNode<E> *subroot){
-            HuffNode<E> *upNode = subroot->right();
-            subroot->right() = upNode->left();
-            upNode->left() = subroot;
-            return upNode;
-        };
-        HuffNode<E> *rotateRight(HuffNode<E> *subroot){
-            HuffNode<E> *upNode = subroot->left();
-            subroot->left() = upNode->right();
-            upNode->right() = subroot;
-            return upNode;
-        };
-        
-        
-		int getBalance(HuffNode<E> *subroot){
-			if (!subroot) return 0;
-			return getHeightRec(subroot->left()) - getHeightRec(subroot->right());
-		}
-
-        // // insert func
-        // bool righTallerBalance(Node *&node){}
-        // bool leftTallerBalance(Node *&node){}
-        // bool insert(Node *&node, const E &value){}
-        // void insert(const E &value){}
-        
-        // //remove func
-        // bool rightShorterBalance(Node *&node){}
-        // bool leftShorterBalance(Node *&node){}
-        // bool remove(Node *&node, const E &value){}
-        // void remove(const E &value){}
-
-		HuffNode<E>* balanceTree(HuffNode<E>* root) {}
 };
 
 template <typename E>
 class minTreeComp {
 public:
-    bool operator()(HuffTree<E>*& tree1, HuffTree<E>*& tree2) {  // func return true ->swap, return false ->nothing
+    bool operator()(HuffNode<E>*& tree1, HuffNode<E>*& tree2) {  // func return true ->swap, return false ->nothing
         if(tree1->weight() == tree2->weight()){
-            return tree1->time > tree2->time;
+            return tree1->Time() > tree2->Time();
         }
         return tree1->weight() > tree2->weight(); // So sánh theo trọng số, giả sử ưu tiên cây có trọng số nhỏ hơn
     }
 };
 template <typename E>
 HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
-    priority_queue<HuffTree<E>*, vector<HuffTree<E>*>, minTreeComp<E>> forest;
+    priority_queue<HuffNode<E>*, vector<HuffNode<E>*>, minTreeComp<E>> forest;
 
     // Bước 1: Tạo một cây cho mỗi ký tự trong chuỗi 'na'
     int len = na.length();
-    int i = 0; 
+    int i = 0;  // i = timeIn
     for (char ch : na) {
-        HuffTree<E>* tree = new HuffTree<E>(ch, freq[ch], i++); // Tạo một cây Huffman với nút lá này và thêm vào hàng đợi
+        HuffNode<E>* tree = new LeafNode<E>(ch, freq[ch], i++); // Tạo một cây Huffman với nút lá này và thêm vào hàng đợi
         forest.push(tree);
     }
-    
+    HuffTree<E> * topTree = new HuffTree<E>();
+	HuffTree<E>* leftTree = new HuffTree<E>();
+	HuffTree<E>* rightTree = new HuffTree<E>();
     // Bước 2: Xây dựng cây Huffman từ các cây con
     while (forest.size() > 1) {
-        HuffTree<E>* temp1 = forest.top();
+        HuffNode<E>* temp1 = forest.top();
         forest.pop();
-        HuffTree<E>* temp2 = forest.top();
+        HuffNode<E>* temp2 = forest.top();
         forest.pop();
-        // Thêm cân bằng cây Huffman dùng recursion
-        //internalNode = balanceTree(internalNode);
+		cout<<"pull node1: "; temp1->print(); cout<<" node2 :"; temp2->print(); cout<<endl;
+		leftTree->setRoot(temp1); leftTree->drawTree();
+		rightTree->setRoot(temp2); rightTree->drawTree();
+		cout<<"--------------------";
+        //Tạo một cây mới với nút nội và thêm vào hàng đợi
+        HuffNode<E>* newTree = new IntlNode<E>(temp1, temp2, i++);
 
-        // Tạo một cây mới với nút nội và thêm vào hàng đợi
-        HuffTree<E>* newTree = new HuffTree<E>(temp1, temp2, i++);
+        // Thêm cân bằng cây Huffman dùng recursion
+        newTree = newTree->balanceTree(newTree);
+
+		topTree->setRoot(newTree);
+		topTree->drawTree();
+		cout<<"=======================";
+		system("pause");
+		newTree->setTime(i++);
         forest.push(newTree);
     }
     // Bước 3: Cây Huffman cuối cùng là cây duy nhất còn lại trong hàng đợi
-    HuffTree<E>* huffmanTree = forest.top();
-    return huffmanTree;
+    HuffNode<E>* rootTree = forest.top();
+    return new HuffTree<E>(rootTree);
 }
 /*=========== END CLASS HuffTree ===========*/
 
@@ -475,7 +633,6 @@ public:
 		}
     };
 };
-
 template<class T>
 class HashTable {
 public:
@@ -529,6 +686,7 @@ public:
 		//B1: convert BST tree -> array in order post-order
 		for(auto reg : regionManage){
 			vector<T> listCus = listCusAtRegion(reg->region);
+
 			// cout<<"list Cus in BST and arranged timeIn at Region: "<<reg->region<<endl;
 			// for(T x : listCus) {
 			// 	cout<<"result: "<<x->getResult()<<" timeIn: "<<x->getTimeIn()<<endl;
@@ -632,6 +790,14 @@ public:
 	}
 
 	void displayRegion(int region) { 
+		bool isAppeared = false;
+		for(InfRegion* reg : regionManage){
+			if(region == reg->region){
+				isAppeared = true;
+				break;
+			}
+		}
+		if(!isAppeared) return ;
 		cout << "=========Region " << region << " - BST in-order: =========="<<endl;
 		hashedBSTs[region].displayInOrder();
 		//cout<<"=================END DISPLAY================"<<endl;
@@ -693,6 +859,9 @@ public:
 	int timeUseRecently(){
 		return this->time;
 	}
+	void updateTimeUse(int ti){
+		this->time = ti;
+	}
 	void printLIFO(int num){
 		if(num > this->NUM()) num = this->NUM();
 		int cusCurrent = this->NUM() -1;
@@ -707,7 +876,7 @@ public:
 		int result;
 		for(int i= 0; i< num; i++){
 			result = cusManange[i]->getResult();
-			cout<<this->ID<<"-"<<result<<endl;
+			cout<<result<<"-"<<this->ID<<endl;
 		}
 		for(int i=0 ; i< num; i++){
 			T cus = cusManange[0];
@@ -870,8 +1039,9 @@ class Heap{
 			for(int i =0; i< int(list.size()); i++){
 				Region<T>* reg = list[i].first;
 				reg->printAndDeleteFIFO(num);
+				reg->updateTime(timeUseRegion++);
 				if(reg->NUM() == 0) {
-					cout<<"clear sub area: "<<reg->atRegion()<<endl;
+					cout<<"clear subregion: "<<reg->atRegion()<<endl;
 					removeSubRegFromRegion(reg, list[i].second);
 					updateList(list, i+1);
 				} 
@@ -1063,6 +1233,7 @@ class Caesar{
 			return result;
 		}
 };
+
 class Operating {
 	private:
 		HuffTree<char>* huffTree;
@@ -1115,8 +1286,9 @@ class Operating {
 		}
 		void HAND(){
 			//print value of Huffman tree of cus came most recently in order from top to bottom, from left to right
-			huffTree->drawTree();
-			//huffTree->H_HAND();
+			if(!huffTree) return ;
+			//huffTree->drawTree();
+			huffTree->H_HAND();
 		}
 		/* sp to GRes method */
 		void KOKUSEN(){ G->G_KOKUSEN(); }
