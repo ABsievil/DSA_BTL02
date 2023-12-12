@@ -1,3 +1,2 @@
-MAXSIZE 10
-LAPSE UhGunhSdwDpClqfQhoOUPMFsSlSlmCZceBwenUmhgWecdrVuwXRBRKunaBXumEnJXwUaWFODhltaveISdQIJPBJhJLObTHKeCXdohZGpVtKlimBUfUweOiYOTkxaNfvqZcnjmhGUWkOHIVxVIhHDvXCEBnusbPkd
-HAND
+MAXSIZE 5
+LAPSE thayTammaidinh

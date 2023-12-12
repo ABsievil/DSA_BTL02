@@ -36,23 +36,14 @@ class Customer{
 };
 
 /*============== BUILD HuffTree ============*/
-enum BalanceValue
-{
-	LL = -2,
-    LH = -1,
-    EH = 0,
-    RH = 1,
-	RR = 2
-};  
 template<typename E> 
 class HuffNode {
     protected:
 		E it;
 		int wgt;
 		int time;
-		BalanceValue balance;
-		HuffNode<E>* lc; //left child
-        HuffNode<E>* rc; //right child
+		HuffNode<E>* lc = nullptr; //left child
+        HuffNode<E>* rc = nullptr; //right child
 	public:
         virtual ~HuffNode(){}
         virtual int weight() { return this->wgt;}
@@ -68,20 +59,6 @@ class HuffNode {
         virtual HuffNode<E>* right() =0;
 
 	public: /* Rotate method */
-		int getHeight(HuffNode<E>* r){
-			if (r == NULL)
-                return 0;
-            int lh = this->getHeight(r->left());
-            int rh = this->getHeight(r->right());
-            return (lh > rh ? lh : rh) + 1;
-		}
-		int getMinHeight(HuffNode<E>* r){
-			if (r == NULL)
-                return 0;
-            int lh = this->getHeight(r->left());
-            int rh = this->getHeight(r->right());
-            return (lh > rh ? rh : lh) + 1;
-		}
         HuffNode<E> *rotateLeft(HuffNode<E> *oldRoot){
 			if(!oldRoot) return nullptr;
 			if(!oldRoot->rc) return oldRoot;
@@ -98,163 +75,86 @@ class HuffNode {
             newRoot->rc = oldRoot;
             return newRoot;
         }
-        
+        int getHeight(HuffNode<E>* r){
+			if (r == NULL)
+                return 0;
+			if(r->isLeaf()) return 1;
+            int lh = this->getHeight(r->left());
+            int rh = this->getHeight(r->right());
+            return (lh > rh ? lh : rh) + 1;
+		}
 		int getBalance(HuffNode<E> *subroot){
 			if (!subroot) return 0;
 			return getHeight(subroot->left()) - getHeight(subroot->right());
 		}
-		void setBalance(int key){
-			if(key ==0) this->balance = EH;
-			else if(key == -1) this->balance = RH;
-			else if(key == 1) this->balance = LH;
-			else if(key > 1) this->balance = LL;
-			else this->balance = RR;
-		}
-		HuffNode<E>* balanceRight(HuffNode<E>* root){
+		HuffNode<E>* balanceTree(HuffNode<E>* root, int numRotate) {
+			if(numRotate == 3) return root;
 			if(root == nullptr) return nullptr;
 			int key = getBalance(root);
-			if(key >=-1 && key <=1) return root;
-			root = rotateRight(root);
-			key = getBalance(root);
-			int keyR = getBalance(root->rc);
-			if(key >=-1 && key <=1 && keyR >=-1 && keyR <=1) return root;
-			root->rc = balanceRight(root->right());
-			return root;
-		}
-		HuffNode<E>* balanceLeft(HuffNode<E>* root){
-			if(root == nullptr) return nullptr;
-			int key = getBalance(root);
-			if(key >=-1 && key <=1) return root;
-			root = rotateLeft(root);
-			key = getBalance(root);
-			int keyL = getBalance(root->lc);
-			if(key >=-1 && key <=1 && keyL >=-1 && keyL <=1) return root;
-			root->rc = balanceLeft(root->left());
-			return root;
-		}
-		void setBalanceValueAllNode(HuffNode<E> * root){
-			if(root == nullptr) return ;
-			if(root->rc) setBalanceValueAllNode(root->rc);
-			if(root->lc) setBalanceValueAllNode(root->lc);
-			int key = getBalance(root);
-			root->setBalance(key);
-		}
-		HuffNode<E>* balanceTree(HuffNode<E>* root) {
-			if(root == nullptr) return nullptr;
-			int key = getBalance(root);
-			root->setBalance(key);    // set temporary balance for root
-			// B1: check subTree is perfect tree
 			int keyL = getBalance(root->left());
 			int keyR = getBalance(root->right());
-			if(keyL == 0 && keyR ==0) {
-				if(key >=-1 && key <=1) return root;  // temporary balance is official balance
-				int HLeftTree = this->getHeight(root->left());
-				int HRightTree = this->getHeight(root->right());
-				
-				if(HLeftTree > HRightTree) {
-					HuffNode<E>* newRoot = this->rotateRight(root);
-					newRoot->rc = balanceRight(newRoot->rc);
-					int newBalance = getBalance(newRoot);
-					newRoot->setBalance(newBalance);
-					setBalanceValueAllNode(newRoot);
-					key = getBalance(newRoot);
-					if(key >= -1 && key <=1) return newRoot;
-					else return balanceTree(newRoot);
-				}
-				else{
-					HuffNode<E>* newRoot = this->rotateLeft(root);
-					newRoot->lc = balanceLeft(newRoot->lc);
-					int newBalance = getBalance(newRoot);
-					newRoot->setBalance(newBalance);
-					key = getBalance(newRoot);
-					if(key >= -1 && key <=1) return newRoot;
-					else return balanceTree(newRoot);
-				}
+			if((key >= -1 && key <=1) && (keyL >= -1 && keyL <=1) && (keyR >= -1 && keyR <=1)){
+				return root;
 			}
-			else if(keyL ==0) { 
-				int HLeftTree = this->getHeight(root->left());
-				int HRightTree = this->getHeight(root->right());
-				int HRightMinTree = this->getMinHeight(root->right());
-				if(key >=-1 && key <=1) { //check if tree is balance
-					if(std::abs(HLeftTree - HRightTree) <= 1 && std::abs(HLeftTree - HRightMinTree) <= 1)
-						return root;  // temporary balance is official balance
-				}
-
-				if(HLeftTree > HRightTree) {
-					HuffNode<E>* newRoot = this->rotateRight(root);
-					newRoot->rc = balanceRight(newRoot->rc);
-					int newBalance = getBalance(newRoot);
-					newRoot->setBalance(newBalance);
-					setBalanceValueAllNode(newRoot);
-					key = getBalance(newRoot);
-					if(key >= -1 && key <=1) return newRoot;
-					else return balanceTree(newRoot);
-				}
-				else{
-					HuffNode<E>* newRoot = this->rotateLeft(root);
-					newRoot->lc = balanceLeft(newRoot->lc);
-					int newBalance = getBalance(newRoot);
-					newRoot->setBalance(newBalance);
-					setBalanceValueAllNode(newRoot);
-					key = getBalance(newRoot);
-					if(key >= -1 && key <=1) return newRoot;
-					else return balanceTree(newRoot);
-				}
+			else if((key >= -1 && key <=1) && (keyL < -1 || keyL > 1) && (keyR < -1 || keyR > 1)){
+				root->lc = balanceTree(root->lc, ++numRotate);
+				root->rc = balanceTree(root->rc, ++numRotate);
+				return root;
 			}
-			else if(keyR ==0){ 
-				int HLeftTree = this->getHeight(root->left());
-				int HLeftMinTree = this->getMinHeight(root->left());
-				int HRightTree = this->getHeight(root->right());
-				if(key >=-1 && key <=1) { //check if tree is balance
-					if(std::abs(HLeftTree - HRightTree) <= 1 && std::abs(HLeftMinTree - HRightTree) <= 1)
-						return root;  // temporary balance is official balance
-				}
-
-				if(HLeftTree > HRightTree) {
-					HuffNode<E>* newRoot = this->rotateRight(root);
-					newRoot->rc = balanceRight(newRoot->rc);
-					int newBalance = getBalance(newRoot);
-					newRoot->setBalance(newBalance);
-					setBalanceValueAllNode(newRoot);
-					key = getBalance(newRoot);
-					if(key >= -1 && key <=1) return newRoot;
-					else return balanceTree(newRoot);
-				}
-				else{
-					HuffNode<E>* newRoot = this->rotateLeft(root);
-					newRoot->lc = balanceLeft(newRoot->lc);
-					int newBalance = getBalance(newRoot);
-					newRoot->setBalance(newBalance);
-					setBalanceValueAllNode(newRoot);
-					key = getBalance(newRoot);
-					if(key >= -1 && key <=1) return newRoot;
-					else return balanceTree(newRoot);
-				}
+			else if((key >= -1 && key <=1) && (keyL < -1 || keyL > 1)) {
+				root->lc = balanceTree(root->lc, ++numRotate);
+				return root;
 			}
-			//B2: check case 2 subTree is balance and tree balance
-
-			// B3: check case normal
+			else if((key >= -1 && key <=1) && (keyR < -1 || keyR > 1)) {
+				root->rc = balanceTree(root->rc, ++numRotate);
+				return root;
+			}
 			// Left Left Case  
-			if(key >= 1 && keyL >=1)
-				return rotateRight(root);
-
+			if(key > 1 && keyL >=0){
+				root = rotateRight(root);
+				if(numRotate == 0){
+					root->lc = balanceTree(root->lc, ++numRotate);
+					root->rc = balanceTree(root->rc, ++numRotate);
+					return root;
+				} 
+				else return root;
+			}
+				
 			// Right Right Case  
-			if(key <= -1 && keyR <= -1)
-				return rotateLeft(root);
+			if(key < -1 && keyR <= 0){
+				root = rotateLeft(root);
+				if(numRotate == 0){
+					root->lc = balanceTree(root->lc, ++numRotate);
+					root->rc = balanceTree(root->rc, ++numRotate);
+					return root;
+				} 
+				else return root;
+			}
 
 			// Left Right Case  
-			if(key >= 1 && keyL <= -1){
+			if(key > 1 && keyL <= -1){
 				root->lc = rotateLeft(root->lc);
-				return rotateRight(root);
+				root = rotateRight(root);
+				if(numRotate == 0){
+					root->lc = balanceTree(root->lc, ++numRotate);
+					root->rc = balanceTree(root->rc, ++numRotate);
+					return root;
+				} 
+				else return root;
 			}
 
 			// Right Left Case  
-			if(key <= -1 && keyR >= 1){
+			if(key < -1 && keyR >= 1){
 				root->rc = rotateRight(root->rc);
-				return rotateLeft(root);
+				root = rotateLeft(root);
+				if(numRotate == 0){
+					root->lc = balanceTree(root->lc, ++numRotate);
+					root->rc = balanceTree(root->rc, ++numRotate);
+					return root;
+				} 
+				else return root;
 			}
 			return root;
-			throw out_of_range("detect error! rotate unexpected");
 		}
 };
 template<typename E>
@@ -264,7 +164,6 @@ class LeafNode: public HuffNode<E>{
 			this->it = val;
 			this->wgt = freq;
 			this->time = ti;
-			this->balance = EH;
 			this->lc = nullptr;
 			this->rc = nullptr;
 	   }
@@ -304,13 +203,12 @@ class HuffTree {
         HuffTree(): root(nullptr){}
 		HuffTree(HuffNode<E>*& r): root(r){}
 		~HuffTree(){
-			drawTree();
+			//drawTree();
 			//system("pause");
 			clear(this->root);
 		}
 		void clear(HuffNode<E>* r){
 			if(r == nullptr) return ;
-			//cout<<"clear root: "; r->print(); cout<<endl;
 			if(r->left()) clear(r->left());
 			if(r->right()) clear(r->right());
 			delete r;
@@ -348,7 +246,7 @@ class HuffTree {
         }
 		string binEncypt(const string& str) {
 			string out = "";
-			if(int(str.length()) == 1) return "0";
+			if(root->isLeaf()) return "0";
 			for(char c: str){
 				string leftPath = getHuffmanCode(root->left(), c, "0");
                 string rightPath = getHuffmanCode(root->right(), c, "1");
@@ -494,11 +392,11 @@ HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
     // Bước 1: Tạo một cây cho mỗi ký tự trong chuỗi 'na'
     int len = na.length();
     int i = 0;  // i = timeIn
-    for (char ch : na) {
+    for (char ch : na) { 
         HuffNode<E>* tree = new LeafNode<E>(ch, freq[ch], i++); // Tạo một cây Huffman với nút lá này và thêm vào hàng đợi
         forest.push(tree);
-    }
-    HuffTree<E> * topTree = new HuffTree<E>();
+    } 
+    HuffTree<E> * topTree = new HuffTree<E>(); /* nhớ xóa 3 dòng này */
 	HuffTree<E>* leftTree = new HuffTree<E>();
 	HuffTree<E>* rightTree = new HuffTree<E>();
     // Bước 2: Xây dựng cây Huffman từ các cây con
@@ -507,20 +405,21 @@ HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
         forest.pop();
         HuffNode<E>* temp2 = forest.top();
         forest.pop();
-		cout<<"pull node1: "; temp1->print(); cout<<" node2 :"; temp2->print(); cout<<endl;
-		leftTree->setRoot(temp1); leftTree->drawTree();
-		rightTree->setRoot(temp2); rightTree->drawTree();
-		cout<<"--------------------";
+		//cout<<"pull node1: "; temp1->print(); cout<<" node2 :"; temp2->print(); cout<<endl;
+		// leftTree->setRoot(temp1); leftTree->drawTree();
+		// rightTree->setRoot(temp2); rightTree->drawTree();
+		// cout<<"--------------------";
+
         //Tạo một cây mới với nút nội và thêm vào hàng đợi
         HuffNode<E>* newTree = new IntlNode<E>(temp1, temp2, i++);
 
         // Thêm cân bằng cây Huffman dùng recursion
-        newTree = newTree->balanceTree(newTree);
+        newTree = newTree->balanceTree(newTree, 0);
 
-		topTree->setRoot(newTree);
-		topTree->drawTree();
-		cout<<"=======================";
-		system("pause");
+		// topTree->setRoot(newTree);
+		// topTree->drawTree();
+		// cout<<"=======================";
+		// system("pause");
 		newTree->setTime(i++);
         forest.push(newTree);
     }
@@ -532,8 +431,7 @@ HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
 
 /*============ BUILD HashTable =============*/
 template<class T>
-class BST
-{
+class BST {
 public:
     class Node;
 private:
@@ -613,13 +511,12 @@ public:
             arr.push_back(r->value);
         }
 	}
-
 	vector<T> postOrder(){
 		vector<T> arr;
 		postOrderTraversal(this->root, arr);
 		return arr;
 	}
-    
+public:    
     class Node
     {
     private:
@@ -702,7 +599,7 @@ public:
 			int N = arr.size();
 			int fact[N];
 			calculateFact(fact, N);
-			int Y = countWays(arr, fact);
+			int Y = countPermu(arr, fact);
 			Y %= MAXSIZE;
 			//cout<<"Y :"<<Y<<" at Region: "<<reg->region<<endl;
 
@@ -721,9 +618,7 @@ public:
 		}
 	}
 	int nCr(int fact[], int N, int R){ 
-		// Function to get the value of nCr
-		if (R > N)
-			return 0;
+		if (R > N) return 0;
 	
 		// nCr= fact(n)/(fact(r)*fact(n-r))
 		int res = fact[N] / fact[R];
@@ -731,62 +626,25 @@ public:
 	
 		return res;
 	}
-	int countWays(vector<int>& arr, int fact[]){
-		// Function to count the number of ways
-		// to rearrange the array to obtain same BST
-
-		// Store the size of the array
+	int countPermu(vector<int>& arr, int fact[]){
 		int N = arr.size();
-	
-		// Base case
-		if (N <= 2) {
-			return 1;
-		}
-	
-		// Store the elements of the
-		// left subtree of BST
+		if (N <= 2) return 1; // Base case
+
+		int root = arr[0];
 		vector<int> leftSubTree;
-	
-		// Store the elements of the
-		// right subtree of BST
 		vector<int> rightSubTree;
 	
-		// Store the root node
-		int root = arr[0];
-	
 		for (int i = 1; i < N; i++) {
-	
-			// Push all the elements
-			// of the left subtree
-			if (arr[i] < root) {
-				leftSubTree.push_back(
-					arr[i]);
-			}
-	
-			// Push all the elements
-			// of the right subtree
-			else {
-				rightSubTree.push_back(
-					arr[i]);
-			}
+			if (arr[i] < root) leftSubTree.push_back(arr[i]);
+			else rightSubTree.push_back(arr[i]);
 		}
-	
-		// Store the size of leftSubTree
 		int N1 = leftSubTree.size();
-	
-		// Store the size of rightSubTree
 		int N2 = rightSubTree.size();
 	
-		// Recurrence relation
-		int countLeft
-			= countWays(leftSubTree,
-						fact);
-		int countRight
-			= countWays(rightSubTree,
-						fact);
+		int countLeft = countPermu(leftSubTree, fact);
+		int countRight = countPermu(rightSubTree, fact);
 	
-		return nCr(fact, N - 1, N1)
-			* countLeft * countRight;
+		return nCr(fact, N - 1, N1) * countLeft * countRight;
 	}
 
 	void displayRegion(int region) { 
@@ -802,7 +660,7 @@ public:
 		hashedBSTs[region].displayInOrder();
 		//cout<<"=================END DISPLAY================"<<endl;
 	}        
-	void displayAllRegion(){
+	void displayAllRegion(){  //check nhớ xóa
 		for(auto reg: regionManage){
 			displayRegion(reg->region);
 		}
@@ -903,6 +761,10 @@ class Heap{
 				delete region[i];
 			}
 			region.clear();
+		}
+
+		int Count(){  //num region is using
+			return int(region.size());
 		}
 
 		void insertToRegion(int reg, T val){ 
@@ -1041,17 +903,13 @@ class Heap{
 				reg->printAndDeleteFIFO(num);
 				reg->updateTime(timeUseRegion++);
 				if(reg->NUM() == 0) {
-					cout<<"clear subregion: "<<reg->atRegion()<<endl;
+					//cout<<"clear subregion: "<<reg->atRegion()<<endl;
 					removeSubRegFromRegion(reg, list[i].second);
 					updateList(list, i+1);
 				} 
 			}
 		}
 
-		int Count(){  //num region is using
-			return int(region.size());
-		}
-		
 		void displayPreOrder(int index, int num) { 
 			if(index >= this->Count()) return ;
 
@@ -1124,9 +982,12 @@ class SRes{
 
 class Caesar{
 	private:
-		map<char, int> myMap;
-	public:
-		string rearrangeName(const string& na, bool& isGreaterThan3ch){
+		map<char, int> myMap;         //first: save freq each of character in oldName, second: save freq ech of character after encypt
+		map<char, char> mapOldName;   // map.first = character of oldName, map.second = character after encypt
+		string nameEncypt;   // EX: aaabbb -> dddeee
+	public: 
+		// rearrangeName -> buildMap -> encryptCaesar -> sortByFreq -> getMap -> convertOldName
+		string rearrangeName(const string& na, bool& isGreaterThan3ch){ // sort string name
 			std::stack<char> S;
 			std::queue<char> tempQ;
 			string name = na;
@@ -1159,32 +1020,7 @@ class Caesar{
 			return out;
 		}
 		
-		void encryptCaesar(const string& na){ //function: encypt string and Incremental string
-			map<char, int> newMap;
-			for(char c: na){
-				char tempCh = spEncypt(c, this->myMap[c]);
-				bool isAdded = false;
-				for(auto& m : newMap){
-					if(m.first == tempCh) {
-						m.second += myMap[c];
-						isAdded = true;
-						break;
-					}
-				}
-				if(!isAdded) {
-					newMap.insert({tempCh, myMap[c]});
-				}
-			}
-			this->myMap = newMap;
-		}
-		char spEncypt(char ch, int shift){
-			if (std::isalpha(ch)) {
-				char base = std::isupper(ch) ? 'A' : 'a';
-				return static_cast<char>((ch - base + shift + 26) % 26 + base);
-			} 
-			else return ch;  // if ch is not character then ignore
-		}
-		string buildMap(const string& na){
+		string buildMap(const string& na){  // create freq and save value to myMap
 			std::map<char, int> list;
 			char x ;
 			int count =0;
@@ -1208,6 +1044,31 @@ class Caesar{
 			return out;
 		}
 		std::map<char, int> getMap(){ return myMap; }
+
+		void encryptCaesar(const string& na){ // encypt string and Incremental string, create value for mapOldName
+			map<char, int> newMap;
+			for(char c: na){
+				char tempCh = spEncypt(c, this->myMap[c]);
+				bool isAdded = false;
+				std::map<char, int>::iterator it = newMap.find(tempCh);
+				if(it != newMap.end()){ // nếu tempCh đã tồn tại trong newMap
+					it->second += myMap[c];
+				}
+				else {
+					newMap.insert({tempCh, myMap[c]});
+				}
+				this->mapOldName.insert({c, tempCh});
+			}
+			this->myMap = newMap;
+		}
+		char spEncypt(char ch, int shift){
+			if (std::isalpha(ch)) {
+				char base = std::isupper(ch) ? 'A' : 'a';
+				return static_cast<char>((ch - base + shift + 26) % 26 + base);
+			} 
+			else return ch;  // if ch is not character then ignore
+		}
+		
 		string sortByFreq(){
 			// Tạo vector từ map để dễ dàng sắp xếp
 			std::vector<std::pair<char, int>> charFreqVector(myMap.begin(),myMap.end());
@@ -1231,6 +1092,14 @@ class Caesar{
 				result += pair.first;  // Lặp qua giá trị freq và thêm kí tự vào chuỗi
 			}
 			return result;
+		}
+
+		string convertOldName(const string& na){
+			string str = "";
+			for(char c : na){
+				str += mapOldName[c];
+			}
+			return str;
 		}
 };
 
@@ -1264,7 +1133,7 @@ class Operating {
 			map<char, int> freq = ca->getMap();
 
 			// cout<<"XList: "<<XList<<endl;
-			// cout<<"list map:\n";
+			// cout<<"list map: ";
 			// for(auto m : freq){
 			// 	cout<< m.first <<m.second<<" ";
 			// } cout<<endl;
@@ -1273,7 +1142,9 @@ class Operating {
 			if(huffTree != nullptr) delete huffTree;    // have to implement HuffTree's Destructor
 			huffTree = nullptr;
 			this->huffTree = buildHuff<char>(XList, freq);
-			string binEncode = huffTree->binEncypt(XList);
+
+			string oldNameEncypt = ca->convertOldName(name);
+			string binEncode = huffTree->binEncypt(oldNameEncypt);
 			//B3: Calculate Result
 			int Result = huffTree->binaryToDecimal(binEncode);
 			//B4: choose Restaurant
