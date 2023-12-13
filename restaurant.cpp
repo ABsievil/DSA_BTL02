@@ -93,21 +93,23 @@ class HuffNode {
 			int key = getBalance(root);
 			int keyL = getBalance(root->left());
 			int keyR = getBalance(root->right());
-			if((key >= -1 && key <=1) && (keyL >= -1 && keyL <=1) && (keyR >= -1 && keyR <=1)){
-				return root;
-			}
-			else if((key >= -1 && key <=1) && (keyL < -1 || keyL > 1) && (keyR < -1 || keyR > 1)){
-				root->lc = balanceTree(root->lc, ++numRotate);
-				root->rc = balanceTree(root->rc, ++numRotate);
-				return root;
-			}
-			else if((key >= -1 && key <=1) && (keyL < -1 || keyL > 1)) {
-				root->lc = balanceTree(root->lc, ++numRotate);
-				return root;
-			}
-			else if((key >= -1 && key <=1) && (keyR < -1 || keyR > 1)) {
-				root->rc = balanceTree(root->rc, ++numRotate);
-				return root;
+			
+			// Tree balance but subtree unbalance
+			if(key >= -1 && key <=1){
+				if((keyL >= -1 && keyL <=1) && (keyR >= -1 && keyR <=1)) return root;
+				else if((keyL < -1 || keyL > 1) && (keyR < -1 || keyR > 1)){
+					root->lc = balanceTree(root->lc, ++numRotate);
+					root->rc = balanceTree(root->rc, ++numRotate);
+					return root;
+				}
+				else if(keyL < -1 || keyL > 1){
+					root->lc = balanceTree(root->lc, ++numRotate);
+					return root;
+				}
+				else if(keyR < -1 || keyR > 1){
+					root->rc = balanceTree(root->rc, ++numRotate);
+					return root;
+				}
 			}
 			// Left Left Case  
 			if(key > 1 && keyL >=0){
@@ -245,7 +247,7 @@ class HuffTree {
             return ""; // Nếu không tìm thấy ở cả hai phía, trả về chuỗi rỗng
         }
 		string binEncypt(const string& str) {
-			string out = "";
+			string code = "";
 			if(root->isLeaf()) return "0";
 			for(char c: str){
 				string leftPath = getHuffmanCode(root->left(), c, "0");
@@ -257,10 +259,10 @@ class HuffTree {
                 } else if (!rightPath.empty()) {
                     tempOut = rightPath;
                 }
-                out += tempOut;
+                code += tempOut;
 			}
-			reverse(out.begin(), out.end());
-			string result(out, 0 , 10);
+			string result(code.end()- 10, code.end());
+			reverse(result.begin(), result.end());
             return result;
 		}
 		int binaryToDecimal(const string& binaryString) {
@@ -1149,7 +1151,7 @@ class Operating {
 			int Result = huffTree->binaryToDecimal(binEncode);
 			//B4: choose Restaurant
 			int ID = Result % MAXSIZE + 1;  //Note: Each of Res has Maxsize area, each of area is unlimited cus
-			//cout<<"ID: "<<ID<<" Result: "<<Result<<endl;
+			cout<<"ID: "<<ID<<" Result: "<<Result<<endl;
 			if(Result% 2 ==0) S->insert(ID, Result);
 			else G->insert(ID, Result);
 
