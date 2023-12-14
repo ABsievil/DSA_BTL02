@@ -1,5 +1,5 @@
 #include "main.h"
-#include "res.cpp"
+#include "restaurant.cpp"
 #include <chrono>
 
 int main(int argc, char* argv[]) {

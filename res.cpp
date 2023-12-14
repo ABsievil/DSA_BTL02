@@ -2,7 +2,13 @@
 
 int MAXSIZE;
 /*
-file submission
+NOTE: BST and Heap class will manage Customer class, and Operating class not manage the order of entering Restaurant
+We use sort to arrange the order of entering Res most recently in both GRes and SRes
+update 03.12: recently finished HuffTree, need rotate as AVLTree
+mini task: implement KOKUSEN and HAND func, more than is implement Heap class
+update 05.12: task unfinish are: rotate HuffTree, permutation of G_KOKUSEN, HEAP class(build heap &&KEITEIKEN, CLEAVE)
+update 09.12: heap finished, no memory leak, please build rotate HuffTree
+update 10.12: is rotating, task: 2 subtree is balance, but tree unbalance, how to fix? what is this case?
 */
 class Customer{
 	private:
@@ -44,7 +50,6 @@ class HuffNode {
 		virtual E val() 	 {return this->it;}
 		virtual int Time()   { return time;}
 		virtual void setTime(int ti) {time = ti;}
-        virtual void print() {cout<<it<<wgt;}
 		virtual void setLeft(HuffNode<E>* b){ lc = b; }
         virtual void setRight(HuffNode<E>* b) { rc = b; }
 
@@ -81,6 +86,78 @@ class HuffNode {
 			if (!subroot) return 0;
 			return getHeight(subroot->left()) - getHeight(subroot->right());
 		}
+		HuffNode<E>* balanceTree(HuffNode<E>* root, bool isFirstRotate) {
+			//if(numRotate == 3) return root;
+			if(root == nullptr) return nullptr;
+			int key = getBalance(root);
+			int keyL = getBalance(root->left());
+			int keyR = getBalance(root->right());
+			
+			// Tree balance but subtree unbalance
+			if(key >= -1 && key <=1){
+				if((keyL >= -1 && keyL <=1) && (keyR >= -1 && keyR <=1)) return root;
+				else if((keyL < -1 || keyL > 1) && (keyR < -1 || keyR > 1)){
+					if(isFirstRotate) root->lc = balanceTree(root->lc, false);
+					if(isFirstRotate) root->rc = balanceTree(root->rc, false);
+					return root;
+				}
+				else if(keyL < -1 || keyL > 1){
+					if(isFirstRotate) root->lc = balanceTree(root->lc, false);
+					return root;
+				}
+				else if(keyR < -1 || keyR > 1){
+					if(isFirstRotate) root->rc = balanceTree(root->rc, false);
+					return root;
+				}
+			}
+			// Left Left Case  
+			if(key > 1 && keyL >=0){
+				root = rotateRight(root);
+				if(isFirstRotate){
+					root->lc = balanceTree(root->lc, false);
+					root->rc = balanceTree(root->rc, false);
+					return root;
+				} 
+				else return root;
+			}
+				
+			// Right Right Case  
+			if(key < -1 && keyR <= 0){
+				root = rotateLeft(root);
+				if(isFirstRotate){
+					root->lc = balanceTree(root->lc, false);
+					root->rc = balanceTree(root->rc, false);
+					return root;
+				} 
+				else return root;
+			}
+
+			// Left Right Case  
+			if(key > 1 && keyL <= -1){
+				root->lc = rotateLeft(root->lc);
+				root = rotateRight(root);
+				if(isFirstRotate){
+					root->lc = balanceTree(root->lc, false);
+					root->rc = balanceTree(root->rc, false);
+					return root;
+				} 
+				else return root;
+			}
+
+			// Right Left Case  
+			if(key < -1 && keyR >= 1){
+				root->rc = rotateRight(root->rc);
+				root = rotateLeft(root);
+				if(isFirstRotate){
+					root->lc = balanceTree(root->lc, false);
+					root->rc = balanceTree(root->rc, false);
+					return root;
+				} 
+				else return root;
+			}
+			return root;
+		}
+
 		HuffNode<E>* Rotation(HuffNode<E>* &root){
 			if(root == nullptr) return nullptr;
 			int key = getBalance(root);
@@ -164,6 +241,8 @@ class HuffTree {
         HuffTree(): root(nullptr){}
 		HuffTree(HuffNode<E>*& r): root(r){}
 		~HuffTree(){
+			//drawTree();
+			//system("pause");
 			clear(this->root);
 		}
 		void clear(HuffNode<E>* r){
@@ -231,6 +310,93 @@ class HuffTree {
 
 			return decimalValue;
 		}
+		// Nhớ xóa 3 hàm dưới này
+		int getHeight(HuffNode<E>* r){
+			if (r == NULL)
+                return 0;
+            int lh = this->getHeight(r->left());
+            int rh = this->getHeight(r->right());
+            return (lh > rh ? lh : rh) + 1;
+		}
+		void printNSpace(int n)
+		{
+			for (int i = 0; i < n - 1; i++)
+				cout << " ";
+		}
+		void drawTree(){
+			if(root== nullptr) {
+				cout<<endl; 
+				return ;
+			}
+			int height = this->getHeight(root);
+        	cout << "height: " << height << "(h)\n";
+			queue<HuffNode<E>* > q;
+			queue<HuffNode<E>* > myQ; 
+			q.push(root);
+			myQ.push(root);
+			HuffNode<E> *temp;
+			int numNode = 0;
+			for(int i =0 ; i< height; i++){
+				numNode += pow(2, i);
+			}
+			int idrun = 0;
+			while (!q.empty())
+			{
+				temp = q.front();
+				q.pop();
+				if(!temp){
+					q.push(NULL); q.push(NULL);
+					myQ.push(NULL); myQ.push(NULL);
+				}
+				else {
+					q.push(temp->left()); q.push(temp->right());
+					myQ.push(temp->left()); myQ.push(temp->right());
+				}
+				idrun++;
+				if(idrun == numNode) break;
+			}
+			int f_space = pow(2, height-1);
+			int space = pow(2, height);
+			int maxNode = 1;
+			int level = 0;
+			int keyOnly = height - 1;
+			printNSpace(f_space + keyOnly--);
+			while (!myQ.empty()) {
+				for(int i=0 ; i< maxNode; i++){
+					temp = myQ.front();
+					myQ.pop();
+					if(temp == NULL) {
+						cout<<"_";
+						printNSpace(space);
+						continue;
+					}
+					//temp->print();
+					if(temp->isLeaf()){
+						// LeafNode<E>* leaf = static_cast<LeafNode<E>*>(temp);
+						// string x = ""; x += leaf->val();  x += to_string(leaf->weight());
+						// int len = x.length();
+						// printNSpace(space - len + 2);
+						//cout<<"space: "<<space<<" len: "<<len<<endl;
+						temp->print();
+						printNSpace(space);
+					}
+					else {
+						// string x = to_string(temp->weight());
+						// int len = x.length();
+						// printNSpace(space - len + 3);
+						cout<<" "; temp->print();
+						printNSpace(space);
+					}
+				} 
+				cout<<endl;
+				maxNode *= 2;
+				level++;
+				space /= 2;
+				f_space /=2;
+				printNSpace(f_space + keyOnly--);
+				if (level == height) return;
+			}
+		}
 
 		void traverseInOrder(HuffNode<E>* r) const {
             if (r == nullptr) return;
@@ -262,26 +428,38 @@ HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
     priority_queue<HuffNode<E>*, vector<HuffNode<E>*>, minTreeComp<E>> forest;
 
     // Bước 1: Tạo một cây cho mỗi ký tự trong chuỗi 'na'
+    //int len = na.length();
     int i = 0;  // i = timeIn
     for (char ch : na) { 
         HuffNode<E>* tree = new LeafNode<E>(ch, freq[ch], i++); // Tạo một cây Huffman với nút lá này và thêm vào hàng đợi
         forest.push(tree);
     } 
-
+    // HuffTree<E> * topTree = new HuffTree<E>(); /* nhớ xóa 3 dòng này */
+	// HuffTree<E>* leftTree = new HuffTree<E>();
+	// HuffTree<E>* rightTree = new HuffTree<E>();
     // Bước 2: Xây dựng cây Huffman từ các cây con
     while (forest.size() > 1) {
         HuffNode<E>* temp1 = forest.top();
         forest.pop();
         HuffNode<E>* temp2 = forest.top();
         forest.pop();
+		//cout<<"pull node1: "; temp1->print(); cout<<" node2 :"; temp2->print(); cout<<endl;
+		// leftTree->setRoot(temp1); leftTree->drawTree();
+		// rightTree->setRoot(temp2); rightTree->drawTree();
+		// cout<<"--------------------";
 
         //Tạo một cây mới với nút nội và thêm vào hàng đợi
         HuffNode<E>* newTree = new IntlNode<E>(temp1, temp2, i++);
 
         // Thêm cân bằng cây Huffman dùng recursion
+        //newTree = newTree->balanceTree(newTree, true);
 		int num = 3;
 		newTree->balanceTree(newTree, num);
 
+		// topTree->setRoot(newTree);
+		// topTree->drawTree();
+		// cout<<"=======================";
+		// system("pause");
 		newTree->setTime(i++);
         forest.push(newTree);
     }
@@ -444,8 +622,12 @@ public:
 	void deleteAllRegion(){
 		//B1: convert BST tree -> array in order post-order
 		for(auto reg : regionManage){
-            // Pull list Cus in BST and arranged timeIn at area = reg
 			vector<T> listCus = listCusAtRegion(reg->region);
+
+			// cout<<"list Cus in BST and arranged timeIn at Region: "<<reg->region<<endl;
+			// for(T x : listCus) {
+			// 	cout<<"result: "<<x->getResult()<<" timeIn: "<<x->getTimeIn()<<endl;
+			// } 
 
 			vector<std::pair<int, int>> listPair;  // list cus include result, name at area = reg
 			vector<int> arr;   // save result of listCus in BST in order time ascending
@@ -459,9 +641,11 @@ public:
 			calculateFact(fact, N);
 			int Y = countPermu(arr, fact);
 			Y %= MAXSIZE;
+			//cout<<"Y :"<<Y<<" at Region: "<<reg->region<<endl;
 
 		//B3: delete Y cus in order FIFO
 			for(int i =0; i< Y && i <N; i++){
+				//cout<<"delete Cus: "<<listPair[i].first<<" timeIn: "<<listPair[i].second<<endl;
 				deleteFromRegion(reg->region, listPair[i].first, listPair[i].second);
 			}
 		}
@@ -512,8 +696,15 @@ public:
 			}
 		}
 		if(!isAppeared) return ;
+		//cout << "=========Region " << region << " - BST in-order: =========="<<endl;
 		hashedBSTs[region].displayInOrder();
+		//cout<<"=================END DISPLAY================"<<endl;
 	}        
+	void displayAllRegion(){  //check nhớ xóa
+		for(auto reg: regionManage){
+			displayRegion(reg->region);
+		}
+	}
 public:
 	class InfRegion {
 		int region;
@@ -726,7 +917,6 @@ class Heap{
 			int sizeList = list.size();
 			for(int i = index; i < sizeList; i++){
 				Region<T>* reg = list[i].first;
-				cout<<reg->atRegion()<<endl;
 				for(int k = 0; k < n; k++){
 					if(region[k]->timeInitial() == reg->timeInitial()){
 						list[i].second = k;
@@ -741,12 +931,20 @@ class Heap{
 			//B1: choose area has not been used the longest and has the fewest visitors
 			vector<std::pair<Region<T>*, int>> list = listRegionSorted(num);
 
+			// cout<<"list region sorted: \n";
+			// for(std::pair<Region<T>*, int> li : list){
+			// 	Region<T>* reg = li.first;
+			// 	cout<<"Region: "<<reg->atRegion()<<" NUM: "<<reg->NUM()<<" ti: "<<reg->timeUseRecently()
+			// 	<<" current index: "<<li.second<<endl;
+			// }
+
 			//B2: delete each of cus in order FIFO and print cus infor
 			for(int i =0; i< int(list.size()); i++){
 				Region<T>* reg = list[i].first;
 				reg->printAndDeleteFIFO(num);
 				reg->updateTime(timeUseRegion++);
 				if(reg->NUM() == 0) {
+					//cout<<"clear subregion: "<<reg->atRegion()<<endl;
 					removeSubRegFromRegion(reg, list[i].second);
 					updateList(list, i+1);
 				} 
@@ -756,7 +954,10 @@ class Heap{
 		void displayPreOrder(int index, int num) { 
 			if(index >= this->Count()) return ;
 
+			// cout << "=========Region " << region[index]->atRegion() <<" NUM: "<<region[index]->NUM()
+			// << " - minHeap PreOrder: =========="<<endl;
 			this->region[index]->printLIFO(num);
+			//cout<<" ================END DISPLAY================"<<endl;
 
 			displayPreOrder(2 * index + 1, num); // Left child
        		displayPreOrder(2 * index + 2, num); // Right child
@@ -788,6 +989,9 @@ class GRes{
 		void insert(int region, int result){ 
 			Customer* cus = new Customer(result, timeInRes++); 
 			hash->insertToRegion(region, cus);
+		}
+		void displayAllRegion(){ //check nhớ xóa
+			hash->displayAllRegion();
 		}
 };
 
@@ -825,7 +1029,7 @@ class Caesar{
 	public: 
 		Caesar(){}
 		~Caesar(){}
-		// Step: rearrangeName -> buildMap -> encryptCaesar -> sortByFreq -> getMap -> convertOldName
+		// rearrangeName -> buildMap -> encryptCaesar -> sortByFreq -> getMap -> convertOldName
 		string rearrangeName(const string& na, bool& isGreaterThan3ch){ // sort string name
 			std::stack<char> S;
 			std::queue<char> tempQ;
@@ -884,8 +1088,7 @@ class Caesar{
 		}
 		std::map<char, int> getMap(){ return myMap; }
 
-		void encryptCaesar(const string& na){ 
-            // encypt string and Incremental string, create value for mapOldName
+		void encryptCaesar(const string& na){ // encypt string and Incremental string, create value for mapOldName
 			map<char, int> newMap;
 			for(char c: na){
 				char tempCh = spEncypt(c, this->myMap[c]);
@@ -971,6 +1174,12 @@ class Operating {
 			string XList = ca->sortByFreq();
 			map<char, int> freq = ca->getMap();
 
+			// cout<<"XList: "<<XList<<endl;
+			// cout<<"list map: ";
+			// for(auto m : freq){
+			// 	cout<< m.first <<m.second<<" ";
+			// } cout<<endl;
+
 			//B2: build Huffman tree and rotate in "Customer class"
 			if(huffTree != nullptr) delete huffTree;    // have to implement HuffTree's Destructor
 			huffTree = nullptr;
@@ -978,12 +1187,14 @@ class Operating {
 
 			string oldNameEncypt = ca->convertOldName(name);
 			string binEncode = huffTree->binEncypt(oldNameEncypt);
-
 			//B3: Calculate Result
 			int Result = huffTree->binaryToDecimal(binEncode);
-            
 			//B4: choose Restaurant
 			int ID = Result % MAXSIZE + 1;  //Note: Each of Res has Maxsize area, each of area is unlimited cus
+			//cout<<"ID: "<<ID<<" Result: "<<Result<<endl;
+			//cout<<"name: "<<name<<endl;
+			if(Result% 2 ==0) cout<<Result<<"-"<<ID<<"-resS"<<endl;
+			else cout<<Result<<"-"<<ID<<"-resG"<<endl;
 
 			if(Result% 2 ==0) S->insert(ID, Result);
 			else G->insert(ID, Result);
@@ -993,11 +1204,13 @@ class Operating {
 		void HAND(){
 			//print value of Huffman tree of cus came most recently in order from top to bottom, from left to right
 			if(!huffTree) return ;
+			//huffTree->drawTree();
 			huffTree->H_HAND();
 		}
 		/* sp to GRes method */
 		void KOKUSEN(){ G->G_KOKUSEN(); }
 		void LIMITLESS(int num){ 
+			//G->displayAllRegion(); 
 			G->G_LIMITLESS(num);
 		} 
 		/* sp to SRes method */
@@ -1016,29 +1229,35 @@ void simulate(string filename)
 		if(str == "LAPSE")
 		{
 			ss >> name;
+			cout<<"===LAPSE "<<endl;
 			r->LAPSE(name);
     	}
         else if(str == "KOKUSEN") 
         {
+			cout<<"===KOKUSEN\n";
             r->KOKUSEN();
     	}
     	else if(str == "KEITEIKEN") 
     	{
             ss >> num;
+			cout<<"===KEITEIKEN "<<num<<endl;
 			r->KEITEIKEN(stoi(num));
 		}
     	else if(str == "HAND") 
     	{
+			cout<<"===HAND\n";
 			r->HAND();
 		}
 		else if(str == "LIMITLESS") 
 		{
 			ss >> num;
+			cout<<"===LIMITLESS "<<num<<endl;
 			r->LIMITLESS(stoi(num));
 		}
     	else if(str == "CLEAVE")
      	{   	
 			ss >> num;
+			cout<<"===CLEAVE "<<num<<endl;
 			r->CLEAVE(stoi(num));
     	}
 		else ss >> MAXSIZE;

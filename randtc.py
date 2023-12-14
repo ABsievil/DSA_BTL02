@@ -9,7 +9,7 @@ def generate_random_string():
     return ''.join(random.choices(string.ascii_letters, k= random.randint(1, 200) ))
 
 # Số lượng chuỗi cần tạo
-num_strings = 100000
+num_strings = 10000
 
 # Xử lý và ghi vào file
 with open("output_random.txt", "w") as file:
