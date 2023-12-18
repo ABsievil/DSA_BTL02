@@ -1193,8 +1193,8 @@ class Operating {
 			int ID = Result % MAXSIZE + 1;  //Note: Each of Res has Maxsize area, each of area is unlimited cus
 			//cout<<"ID: "<<ID<<" Result: "<<Result<<endl;
 			//cout<<"name: "<<name<<endl;
-			if(Result% 2 ==0) cout<<Result<<"-"<<ID<<"-resS"<<endl;
-			else cout<<Result<<"-"<<ID<<"-resG"<<endl;
+			// if(Result% 2 ==0) cout<<Result<<"-"<<ID<<"-resS"<<endl;
+			// else cout<<Result<<"-"<<ID<<"-resG"<<endl;
 
 			if(Result% 2 ==0) S->insert(ID, Result);
 			else G->insert(ID, Result);

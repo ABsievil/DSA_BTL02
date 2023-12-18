@@ -100,52 +100,22 @@ class HuffNode {
 			}
 			return root;
 		}
-		void balanceTree(HuffNode<E>* &root, int& num) {
-			if(!root || num <= 0) return ;
-			int B = getBalance(root);
-			while (B < -1 || B > 1) {
-				root = Rotation(root);
-				num--;
-				if(num <=0) return ;
-				B = getBalance(root);
-			}
-			balanceTree(root->lc, num);
-			balanceTree(root->rc, num);
-			// B = getBalance(root);
-			// if((B < -1 || B > 1)) balanceTree(root, num);
-		}
-		void miniBTree(HuffNode<E>* &root, int& num) { // rotate 1 time
-			if(!root || num <= 0) return ;
+		bool miniBalanceTree(HuffNode<E>* &root) { // rotate 1 time
+			if(!root) return false;
 			int B = getBalance(root);
 			if(B < -1 || B > 1){
 				root = Rotation(root);
-				num--;
+				return true;
 			}
+			if(miniBalanceTree(root->lc)) return true;
+			if(miniBalanceTree(root->rc)) return true;
+			return false;
 		}
-		void BTree(HuffNode<E>* &root, int& num) {
+		void balanceTree(HuffNode<E>* &root, int& num) {
 			if(!root || num <= 0) return ;
-			int B = getBalance(root);
-			int BL = getBalance(root->lc);
-			int BR = getBalance(root->rc);
-			if( abs(B) <=1 && abs(BL) <=1 && abs(BR) <=1) return ;
-
-			while (B < -1 || B > 1) {
-				root = Rotation(root);
+			while (num > 0) {
+				if(!miniBalanceTree(root)) return ;
 				num--;
-				if(num <=0) return ;
-				B = getBalance(root);
-			}
-
-			BL = getBalance(root->lc);
-			if(BL < -1 || BL > 1) {
-				miniBTree(root->lc, num);
-				BTree(root, num);
-			}
-			
-			BR = getBalance(root->rc);
-			if(BR < -1 || BR > 1) {
-				miniBTree(root->rc, num);
-				BTree(root, num);	
 			}
 		}
 };
@@ -262,7 +232,7 @@ class HuffTree {
 
 			return decimalValue;
 		}
-
+		
 		void traverseInOrder(HuffNode<E>* r) const {
             if (r == nullptr) return;
             traverseInOrder(r->left()); // Đệ quy in cây con trái
@@ -311,8 +281,7 @@ HuffTree<E>* buildHuff(const string& na, map<char, int>& freq) {
 
         // Thêm cân bằng cây Huffman dùng recursion
 		int num = 3;
-		//newTree->balanceTree(newTree, num);
-		newTree->BTree(newTree, num);
+		newTree->balanceTree(newTree, num);
 
 		newTree->setTime(i++);
         forest.push(newTree);
@@ -491,7 +460,7 @@ public:
 			calculateFact(fact, N);
 			int Y = countPermu(arr, fact);
 			Y %= MAXSIZE;
-
+			
 		//B3: delete Y cus in order FIFO
 			for(int i =0; i< Y && i <N; i++){
 				deleteFromRegion(reg->region, listPair[i].first, listPair[i].second);
@@ -1021,8 +990,8 @@ class Operating {
 			//B4: choose Restaurant
 			int ID = Result % MAXSIZE + 1;  //Note: Each of Res has Maxsize area, each of area is unlimited cus
 
-			// if(Result% 2 ==0) cout<<Result<<"-"<<ID<<"-resS"<<endl;
-			// else cout<<Result<<"-"<<ID<<"-resG"<<endl;
+			if(Result% 2 ==0) cout<<Result<<"-"<<ID<<"-resS"<<endl;
+			else cout<<Result<<"-"<<ID<<"-resG"<<endl;
 
 			if(Result% 2 ==0) S->insert(ID, Result);
 			else G->insert(ID, Result);
@@ -1036,9 +1005,7 @@ class Operating {
 		}
 		/* sp to GRes method */
 		void KOKUSEN(){ G->G_KOKUSEN(); }
-		void LIMITLESS(int num){ 
-			G->G_LIMITLESS(num);
-		} 
+		void LIMITLESS(int num){ G->G_LIMITLESS(num); } 
 		/* sp to SRes method */
 		void KEITEIKEN(int num){ S->S_KEITEIKEN(num); }
 		void CLEAVE (int num){ S->S_CLEAVE(num); }
@@ -1054,7 +1021,7 @@ void simulate(string filename)
 	{ 
 		if(str == "LAPSE")
 		{
-			ss >> name;
+			ss >> name; 
 			r->LAPSE(name);
     	}
         else if(str == "KOKUSEN") 

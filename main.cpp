@@ -8,8 +8,8 @@ int main(int argc, char* argv[]) {
     simulate(fileName);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
-    //cin.get();
     std::cout << "Time run: " << duration.count() << "(s)\n";
+    cin.get();
     system("pause");
     return 0;
 }
